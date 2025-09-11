@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"github.com/adaiasmagdiel/beremiz-go/internal/enums"
+
+	"github.com/adaiasmagdiel/beremiz-go/internal/lexer"
 )
 
 func main() {
@@ -22,7 +23,11 @@ func main() {
 	}
 	content := string(bytes)
 
-	tokens []Token = [];
+	fmt.Printf("Program:\n    %s\n", content)
 
-	fmt.Println("Program:\n\n")
+	lexer := lexer.New(content, "main.brz", func() {
+		os.Exit(1)
+	})
+	lexer.Tokenize()
+
 }
