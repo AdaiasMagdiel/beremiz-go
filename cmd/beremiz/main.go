@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/adaiasmagdiel/beremiz-go/internal/lexer"
+	"github.com/adaiasmagdiel/beremiz-go/internal/parser"
 )
 
 func main() {
@@ -23,11 +24,15 @@ func main() {
 	}
 	content := string(bytes)
 
-	fmt.Printf("Program:\n    %s\n", content)
-
-	lexer := lexer.New(content, "main.brz", func() {
+	errorHandler := func() {
 		os.Exit(1)
-	})
-	lexer.Tokenize()
+	}
 
+	lexer := lexer.New(content, "main.brz", errorHandler)
+	tokens := lexer.Tokenize()
+
+	// fmt.Println(tokens)
+
+	parser := parser.New(tokens, errorHandler)
+	parser.Eval()
 }
