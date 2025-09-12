@@ -8,6 +8,7 @@ const (
 
 	Identifier TokenType = "IDENTIFIER"
 	Show       TokenType = "SHOW"
+	ShowLN     TokenType = "SHOWLN"
 
 	Plus  TokenType = "PLUS"
 	Minus TokenType = "MINUS"
@@ -43,7 +44,8 @@ func IsOperator(args ...byte) bool {
 }
 
 var Keywords map[string]TokenType = map[string]TokenType{
-	"show": Show,
+	"show":   Show,
+	"showln": ShowLN,
 }
 
 func IsKeyword(content string) bool {

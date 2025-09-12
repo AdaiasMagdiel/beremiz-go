@@ -13,11 +13,11 @@ func red(content string) string {
 }
 
 func Error(message string) {
-	fmt.Fprintf(os.Stderr, "%s%s\n", red("Error:"), message)
+	fmt.Fprintf(os.Stderr, "%s%s\n", red("Error: "), message)
 }
 
 func LexerError(lines []string, loc tokens.Loc, message string, tailLength int) {
-	fmt.Fprintf(os.Stderr, "%s %s\n\n", red("LexerError:"), message)
+	fmt.Fprintf(os.Stderr, "%s %s\n\n", red("LexerError: "), message)
 
 	line := lines[loc.Line-1]
 	prefix := fmt.Sprintf("%s:%d:%d: ", loc.File, loc.Line, loc.Col)
@@ -37,5 +37,5 @@ func LexerError(lines []string, loc tokens.Loc, message string, tailLength int) 
 }
 
 func SyntaxError(token tokens.Token, message string) {
-	fmt.Println(message)
+	fmt.Fprintf(os.Stderr, "%s%s\n", red("SyntaxError: "), message)
 }

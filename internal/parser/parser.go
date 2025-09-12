@@ -87,7 +87,7 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 
 	case float64:
 		switch bv := b.Literal.(type) {
-		case int:
+		case int64:
 			val, ty, err := floatOp(av, float64(bv))
 			if err != nil {
 				return tokens.Token{}, err
@@ -148,6 +148,7 @@ func (p *Parser) Eval() {
 					"The '%s' operator requires two operands in stack. Found %d.",
 					token.Literal, len(stack)))
 				p.errorHandler()
+				return
 			}
 
 			a := stack[len(stack)-2]
@@ -160,31 +161,41 @@ func (p *Parser) Eval() {
 				err.SyntaxError(token, fmt.Sprintf(
 					"Operator '%s' expects int or float.", token.Literal))
 				p.errorHandler()
+				return
 			}
 
 			res, e := evalNumBin(token, a, b)
 			if e != nil {
 				err.SyntaxError(token, e.Error())
 				p.errorHandler()
+				return
 			}
 			stack = append(stack, res)
 			p.consume()
 
-		case tokens.Show:
+		case tokens.Show,
+			tokens.ShowLN:
 			if len(stack) == 0 {
-				err.SyntaxError(token, "The 'show' keyword requires value in stack. Stack is empty.")
+				err.SyntaxError(token, "This keyword requires value in stack. Stack is empty.")
 				p.errorHandler()
+				return
 			}
 
 			a := stack[len(stack)-1]
 			stack = stack[:len(stack)-1]
 			p.consume()
 
-			fmt.Print(a.Literal)
+			if token.Type == tokens.Show {
+				fmt.Print(a.Literal)
+			} else {
+				fmt.Println(a.Literal)
+
+			}
 
 		default:
 			err.Error(fmt.Sprintf("Not implemented case for TokenType '%s'.", token.Type))
 			p.errorHandler()
+			return
 		}
 	}
 }
