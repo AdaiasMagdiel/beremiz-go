@@ -8,7 +8,6 @@ const (
 
 	Identifier TokenType = "IDENTIFIER"
 	Show       TokenType = "SHOW"
-	ShowLN     TokenType = "SHOWLN"
 
 	Plus  TokenType = "PLUS"
 	Minus TokenType = "MINUS"

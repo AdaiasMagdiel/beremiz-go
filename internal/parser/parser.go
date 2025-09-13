@@ -26,11 +26,6 @@ func New(tokens []tokens.Token, errorHandler func()) *Parser {
 	}
 }
 
-// evalNumBin aplica um operador numérico (+, -, *, /) em dois tokens numéricos.
-// Regras:
-// - int op int => int (exceto /, que vira float)
-// - qualquer caso com float => float
-// - checa divisão por zero
 func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 	intOp := func(x, y int64) (any, tokens.TokenType, error) {
 		switch op.Type {
@@ -156,7 +151,6 @@ func (p *Parser) Eval() {
 			b := stack[len(stack)-1]
 			stack = stack[:len(stack)-2]
 
-			// garanta que são numéricos (opcional, já validamos nos type assertions)
 			if (a.Type != tokens.Int && a.Type != tokens.Float) ||
 				(b.Type != tokens.Int && b.Type != tokens.Float) {
 				err.SyntaxError(token, fmt.Sprintf(
@@ -174,8 +168,7 @@ func (p *Parser) Eval() {
 			stack = append(stack, res)
 			p.consume()
 
-		case tokens.Show,
-			tokens.ShowLN:
+		case tokens.Show:
 			if len(stack) == 0 {
 				err.SyntaxError(token, "This keyword requires value in stack. Stack is empty.")
 				p.errorHandler()
