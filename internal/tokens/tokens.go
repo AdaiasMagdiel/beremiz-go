@@ -3,11 +3,13 @@ package tokens
 type TokenType string
 
 const (
-	Int   TokenType = "INT"
-	Float TokenType = "FLOAT"
+	Int    TokenType = "INT"
+	Float  TokenType = "FLOAT"
+	String TokenType = "STRING"
 
 	Identifier TokenType = "IDENTIFIER"
-	Show       TokenType = "SHOW"
+	Write      TokenType = "WRITE"
+	Writeln    TokenType = "WRITELINE"
 
 	Plus  TokenType = "PLUS"
 	Minus TokenType = "MINUS"
@@ -43,7 +45,8 @@ func IsOperator(args ...byte) bool {
 }
 
 var Keywords map[string]TokenType = map[string]TokenType{
-	"show": Show,
+	"write":   Write,
+	"writeln": Writeln,
 }
 
 func IsKeyword(content string) bool {

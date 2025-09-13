@@ -131,9 +131,11 @@ func (p *Parser) Eval() {
 
 		switch token.Type {
 		case tokens.Int,
-			tokens.Float:
+			tokens.Float,
+			tokens.String:
 
 			stack = append(stack, p.consume())
+
 		case tokens.Plus,
 			tokens.Minus,
 			tokens.Times,
@@ -168,7 +170,9 @@ func (p *Parser) Eval() {
 			stack = append(stack, res)
 			p.consume()
 
-		case tokens.Show:
+		case tokens.Write,
+			tokens.Writeln:
+
 			if len(stack) == 0 {
 				err.SyntaxError(token, "This keyword requires value in stack. Stack is empty.")
 				p.errorHandler()
@@ -179,7 +183,7 @@ func (p *Parser) Eval() {
 			stack = stack[:len(stack)-1]
 			p.consume()
 
-			if token.Type == tokens.Show {
+			if token.Type == tokens.Write {
 				fmt.Print(a.Literal)
 			} else {
 				fmt.Println(a.Literal)
@@ -187,6 +191,7 @@ func (p *Parser) Eval() {
 			}
 
 		default:
+
 			err.Error(fmt.Sprintf("Not implemented case for TokenType '%s'.", token.Type))
 			fmt.Fprintf(os.Stderr, "\x1b[31m%s:%d:%d:\x1b[0m '%s'", token.Loc.File, token.Loc.Line, token.Loc.Col, token.Literal)
 			p.errorHandler()
