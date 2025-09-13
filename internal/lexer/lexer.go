@@ -156,6 +156,48 @@ func (l *Lexer) extractIdentifier() tokens.Token {
 	}
 }
 
+func (l *Lexer) extractComment() tokens.Token {
+	l.consume() // Remove #
+
+	isMultiline := false
+	if l.peek() == '[' {
+		isMultiline = true
+	}
+
+	for {
+		if l.isAtEnd() {
+			break
+		}
+
+		ch := l.peek()
+
+		if ch == '\n' {
+			if !isMultiline {
+				break
+			}
+		}
+
+		if ch == '#' {
+			if isMultiline {
+				l.consume()
+				break
+			}
+		}
+
+		l.consume()
+	}
+
+	return tokens.Token{}
+}
+
+func (l *Lexer) isWhitespace(ch byte) bool {
+	switch ch {
+	case ' ', '\t', '\n', '\r', '\f', '\v':
+		return true
+	}
+	return false
+}
+
 func (l *Lexer) isNum(ch byte) bool {
 	return ch >= '0' && ch <= '9'
 }
@@ -198,7 +240,13 @@ func (l *Lexer) Tokenize() []tokens.Token {
 		} else if l.isAlpha(ch) || ch == '_' {
 			token := l.extractIdentifier()
 			ts = append(ts, token)
+		} else if ch == '#' {
+			l.extractComment()
+		} else if l.isWhitespace(ch) {
+			l.consume()
 		} else {
+			err.LexerError(l.lines, l.getLoc(), "invalid character '"+string(ch)+"'", 0)
+			l.errorHandler()
 			l.consume()
 		}
 	}

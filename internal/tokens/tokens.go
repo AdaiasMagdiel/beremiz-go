@@ -44,8 +44,7 @@ func IsOperator(args ...byte) bool {
 }
 
 var Keywords map[string]TokenType = map[string]TokenType{
-	"show":   Show,
-	"showln": ShowLN,
+	"show": Show,
 }
 
 func IsKeyword(content string) bool {

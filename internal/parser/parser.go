@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/adaiasmagdiel/beremiz-go/internal/err"
 	"github.com/adaiasmagdiel/beremiz-go/internal/tokens"
@@ -194,6 +195,7 @@ func (p *Parser) Eval() {
 
 		default:
 			err.Error(fmt.Sprintf("Not implemented case for TokenType '%s'.", token.Type))
+			fmt.Fprintf(os.Stderr, "\x1b[31m%s:%d:%d:\x1b[0m '%s'", token.Loc.File, token.Loc.Line, token.Loc.Col, token.Literal)
 			p.errorHandler()
 			return
 		}

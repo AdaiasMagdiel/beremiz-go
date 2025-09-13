@@ -1,1 +1,7 @@
+# This is a single line comment
 1 3.2 + show
+
+#[
+This is a multi-line comment.
+It can span multiple lines.
+]#
