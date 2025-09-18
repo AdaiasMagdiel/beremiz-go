@@ -8,8 +8,10 @@ const (
 	String TokenType = "STRING"
 
 	Identifier TokenType = "IDENTIFIER"
-	Write      TokenType = "WRITE"
-	Writeln    TokenType = "WRITELINE"
+
+	Write   TokenType = "WRITE"
+	Writeln TokenType = "WRITELINE"
+	Type    TokenType = "TYPE"
 
 	Plus  TokenType = "PLUS"
 	Minus TokenType = "MINUS"
@@ -47,6 +49,7 @@ func IsOperator(args ...byte) bool {
 var Keywords map[string]TokenType = map[string]TokenType{
 	"write":   Write,
 	"writeln": Writeln,
+	"type":    Type,
 }
 
 func IsKeyword(content string) bool {

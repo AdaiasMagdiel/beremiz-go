@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/adaiasmagdiel/beremiz-go/internal/err"
 	"github.com/adaiasmagdiel/beremiz-go/internal/tokens"
@@ -187,11 +188,33 @@ func (p *Parser) Eval() {
 				fmt.Print(a.Literal)
 			} else {
 				fmt.Println(a.Literal)
+			}
 
+		case tokens.Type:
+			if len(stack) == 0 {
+				err.SyntaxError(token, "This keyword requires value in stack. Stack is empty.")
+				p.errorHandler()
+				return
+			}
+
+			a := stack[len(stack)-1]
+			p.consume()
+
+			if tokens.IsKeyword(strings.ToLower(string(a.Type))) {
+				stack = append(stack, tokens.Token{
+					Type:    tokens.String,
+					Literal: "KEYWORD",
+					Loc:     token.Loc,
+				})
+			} else {
+				stack = append(stack, tokens.Token{
+					Type:    tokens.String,
+					Literal: string(a.Type),
+					Loc:     token.Loc,
+				})
 			}
 
 		default:
-
 			err.Error(fmt.Sprintf("Not implemented case for TokenType '%s'.", token.Type))
 			fmt.Fprintf(os.Stderr, "\x1b[31m%s:%d:%d:\x1b[0m '%s'", token.Loc.File, token.Loc.Line, token.Loc.Col, token.Literal)
 			p.errorHandler()
