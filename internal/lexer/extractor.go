@@ -190,6 +190,8 @@ func (l *Lexer) extractIdentifier() tokens.Token {
 		kind = tokens.True
 	} else if literal == "false" {
 		kind = tokens.False
+	} else if literal == "nil" {
+		kind = tokens.Nil
 	}
 
 	return tokens.Token{

@@ -38,11 +38,11 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 			return x * y, tokens.Int, nil
 		case tokens.Div:
 			if y == 0 {
-				return nil, tokens.NIL, fmt.Errorf("division by zero")
+				return nil, tokens.Nil, fmt.Errorf("division by zero")
 			}
 			return float64(x) / float64(y), tokens.Float, nil
 		default:
-			return nil, tokens.NIL, fmt.Errorf("unsupported op: %s", op.Type)
+			return nil, tokens.Nil, fmt.Errorf("unsupported op: %s", op.Type)
 		}
 	}
 	floatOp := func(x, y float64) (any, tokens.TokenType, error) {
@@ -55,11 +55,11 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 			return x * y, tokens.Float, nil
 		case tokens.Div:
 			if y == 0 {
-				return nil, tokens.NIL, fmt.Errorf("division by zero")
+				return nil, tokens.Nil, fmt.Errorf("division by zero")
 			}
 			return x / y, tokens.Float, nil
 		default:
-			return nil, tokens.NIL, fmt.Errorf("unsupported op: %s", op.Type)
+			return nil, tokens.Nil, fmt.Errorf("unsupported op: %s", op.Type)
 		}
 	}
 
@@ -120,18 +120,73 @@ func (p *Parser) isAtEnd() bool {
 	return p.pos >= len(p.Tokens) || p.Tokens[p.pos].Type == tokens.EOF
 }
 
-func (p *Parser) addressConditionals() {
-	var ifs = []int{}
+func (p *Parser) handleControlFlow() {
+	var ctrl []int
 
 	for idx, token := range p.Tokens {
-		if token.Type == tokens.If {
-			ifs = append(ifs, idx)
+		switch token.Type {
+
+		case tokens.If:
+			ctrl = append(ctrl, idx)
+
+		case tokens.Else:
+
+			var top int
+			var e error
+			ctrl, top, e = Pop(ctrl)
+
+			if e != nil || top < 0 {
+				msg := "Unexpected 'else' — no active 'if' block"
+				if top < 0 {
+					msg = "Duplicate 'else' — 'if' block already has an 'else'"
+				}
+				err.SyntaxError(token, msg)
+				p.errorHandler()
+				return
+			}
+
+			p.Tokens[top].JmpTo = idx + 1
+
+			ctrl = append(ctrl, -idx)
+
+		case tokens.Endif:
+			var top int
+			var e error
+			ctrl, top, e = Pop(ctrl)
+
+			if e != nil {
+				err.SyntaxError(token, "Unexpected 'endif' — no open 'if' block")
+				p.errorHandler()
+				return
+			}
+
+			if top < 0 {
+				elseIdx := -top
+				p.Tokens[elseIdx].JmpTo = idx + 1
+			} else {
+				ifIdx := top
+				p.Tokens[ifIdx].JmpTo = idx + 1
+			}
+		}
+	}
+
+	for len(ctrl) > 0 {
+		var top int
+		ctrl, top, _ = Pop(ctrl)
+		if top < 0 {
+			elseIdx := -top
+			err.SyntaxError(p.Tokens[elseIdx], "Syntax error: 'else' without matching 'endif'")
+		} else {
+			ifIdx := top
+			err.SyntaxError(p.Tokens[ifIdx], "Syntax error: 'if' without matching 'endif'")
 		}
 	}
 }
 
 func (p *Parser) Eval() {
 	var stack = []tokens.Token{}
+
+	p.handleControlFlow()
 
 	for {
 		if p.isAtEnd() {
@@ -145,8 +200,8 @@ func (p *Parser) Eval() {
 			tokens.Float,
 			tokens.String,
 			tokens.True,
-			tokens.False:
-
+			tokens.False,
+			tokens.Nil:
 			stack = append(stack, p.consume())
 
 		case tokens.Plus,
@@ -187,7 +242,7 @@ func (p *Parser) Eval() {
 			tokens.Writeln:
 
 			if len(stack) == 0 {
-				err.SyntaxError(token, "This keyword requires value in stack. Stack is empty.")
+				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal))
 				p.errorHandler()
 				return
 			}
@@ -204,7 +259,7 @@ func (p *Parser) Eval() {
 
 		case tokens.Type:
 			if len(stack) == 0 {
-				err.SyntaxError(token, "This keyword requires value in stack. Stack is empty.")
+				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal))
 				p.errorHandler()
 				return
 			}
@@ -225,6 +280,50 @@ func (p *Parser) Eval() {
 					Loc:     token.Loc,
 				})
 			}
+
+		case tokens.If:
+			var top tokens.Token
+			var e error
+			stack, top, e = Pop(stack)
+
+			if e != nil {
+				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal))
+				p.errorHandler()
+				return
+			}
+
+			var cond bool
+			switch {
+			case top.Type == tokens.True:
+				cond = true
+			case top.Type == tokens.False,
+				top.Type == tokens.Nil:
+				cond = false
+			case top.Type == tokens.Int:
+				cond = top.Literal != 0
+			case top.Type == tokens.Float:
+				cond = top.Literal != 0.0
+			case top.Type == tokens.String:
+				cond = top.Literal != ""
+			default:
+				err.SyntaxError(token, fmt.Sprintf(
+					"Invalid condition type '%s' cannot be used in a boolean context", top.Type,
+				))
+				p.errorHandler()
+				return
+			}
+
+			p.consume()
+
+			if !cond {
+				p.pos = token.JmpTo
+			}
+
+		case tokens.Else:
+			p.pos = p.consume().JmpTo
+
+		case tokens.Endif:
+			p.consume()
 
 		default:
 			err.Error(fmt.Sprintf("Not implemented case for TokenType '%s'.", token.Type))

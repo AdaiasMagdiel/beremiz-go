@@ -9,6 +9,7 @@ const (
 
 	True  TokenType = "TRUE"
 	False TokenType = "FALSE"
+	Nil   TokenType = "NIL"
 
 	Identifier TokenType = "IDENTIFIER"
 
@@ -26,7 +27,6 @@ const (
 	Div   TokenType = "DIV"
 
 	EOF TokenType = "EOF"
-	NIL TokenType = "NIL"
 )
 
 type Loc struct {
