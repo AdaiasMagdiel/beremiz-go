@@ -1,0 +1,95 @@
+%YAML 1.2
+---
+# See http://www.sublimetext.com/docs/3/syntax.html
+name: Beremiz
+file_extensions:
+  - brz
+scope: source.beremiz
+
+contexts:
+  # The prototype context is prepended to all contexts but those setting
+  # meta_include_prototype: false.
+  prototype:
+    - include: comments
+
+  main:
+    # The main context is the initial starting point of our syntax.
+    # Include other contexts from here (or specify them directly).
+    - include: keywords
+    - include: numbers
+    - include: strings
+
+  keywords:
+    # Keywords are if, else, for, and while.
+    # Note that backslashes don't need to be escaped within single quoted
+    # strings in YAML. When using single quoted strings, only single quotes
+    # need to be escaped: this is done by using two single quotes next to each
+    # other.
+    - match: '\b(type|write|writeln)\b'
+      scope: keyword.control.beremiz
+
+  numbers:
+    # Decimal integers (positive, negative, zero, with underscores)
+    - match: '\b[-+]?[0-9]+(_[0-9]+)*\b'
+      scope: constant.numeric.integer.decimal.beremiz
+    # 64-bit integers (maximum and minimum)
+    - match: '\b-?922337203685477580[7-8]\b'
+      scope: constant.numeric.integer.decimal.beremiz
+    # Floating-point numbers (e.g., 3.14, -3.14, 0.0, .5, 5.)
+    - match: '\b[-+]?[0-9]*\.[0-9]+|[0-9]+\.[0-9]*\b'
+      scope: constant.numeric.float.beremiz
+    # Hexadecimal numbers (e.g., 0xFF, 0x1a2b3c, 0XDEADBEEF)
+    - match: '\b0[xX][0-9a-fA-F]+(_[0-9a-fA-F]+)*\b'
+      scope: constant.numeric.hex.beremiz
+    # Octal numbers (e.g., 0777, 0o123)
+    - match: '\b0[oO]?[0-7]+(_[0-7]+)*\b'
+      scope: constant.numeric.octal.beremiz
+    # Binary numbers (e.g., 0b1010, 0B11110000, 0b1100_0101)
+    - match: '\b0[bB][01]+(_[01]+)*\b'
+      scope: constant.numeric.binary.beremiz
+
+  strings:
+    # Double-quoted strings
+    - match: '"'
+      scope: punctuation.definition.string.begin.double.beremiz
+      push: inside_double_string
+    # Single-quoted strings
+    - match: "'"
+      scope: punctuation.definition.string.begin.single.beremiz
+      push: inside_single_string
+
+  inside_double_string:
+    - meta_include_prototype: false
+    - meta_scope: string.quoted.double.beremiz
+    - match: '\\["''\\nta]'
+      scope: constant.character.escape.beremiz
+    - match: '"'
+      scope: punctuation.definition.string.end.double.beremiz
+      pop: true
+    - match: '\n'
+      scope: invalid.illegal.unclosed-string.beremiz
+      pop: true
+
+  inside_single_string:
+    - meta_include_prototype: false
+    - meta_scope: string.quoted.single.beremiz
+    - match: '\\["''\\nta]'
+      scope: constant.character.escape.beremiz
+    - match: "'"
+      scope: punctuation.definition.string.end.single.beremiz
+      pop: true
+    - match: '\n'
+      scope: invalid.illegal.unclosed-string.beremiz
+      pop: true
+
+  comments:
+    # Single-line comment
+    - match: '#.*$'
+      scope: comment.line.number-sign.beremiz
+    # Block comment
+    - match: '#\['
+      scope: comment.block.beremiz
+      push:
+        - meta_scope: comment.block.beremiz
+        - match: '\]#'
+          pop: true
