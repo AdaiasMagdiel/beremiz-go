@@ -1,0 +1,118 @@
+true if
+"It's true"
+else
+"It's false"
+endif
+
+writeln
+
+# ------------
+
+false if
+"It's true"
+else
+"It's false"
+endif
+
+writeln
+
+
+# ------------
+
+true if
+    false if
+        "inner true"
+    else
+        "inner false"
+    endif
+else
+    "outer false"
+endif
+
+writeln
+
+# ------------
+
+true if
+    "A"
+else
+    "B"
+endif
+writeln
+
+false if
+    "C"
+else
+    "D"
+endif
+writeln
+
+# ------------
+
+"" if
+    "non-empty branch"
+else
+    "empty string branch"
+endif
+
+writeln
+
+# ------------
+
+"hello" if
+    "branch taken"
+else
+    "branch skipped"
+endif
+
+writeln
+
+# ------------
+
+0 if
+    "branch with zero"
+else
+    "branch skipped because zero is falsy"
+endif
+
+writeln
+
+# ------------
+
+-42 if
+    "negative numbers are truthy"
+else
+    "should not run"
+endif
+
+writeln
+
+# ------------
+
+0.0 if
+    "float branch"
+else
+    "float zero is falsy"
+endif
+
+writeln
+
+# ------------
+
+3.14 if
+    "pi is truthy"
+else
+    "never runs"
+endif
+
+writeln
+
+# ------------
+
+nil if
+    "branch when not nil"
+else
+    "nil is falsy"
+endif
+
+writeln
