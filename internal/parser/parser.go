@@ -120,6 +120,16 @@ func (p *Parser) isAtEnd() bool {
 	return p.pos >= len(p.Tokens) || p.Tokens[p.pos].Type == tokens.EOF
 }
 
+func (p *Parser) addressConditionals() {
+	var ifs = []int{}
+
+	for idx, token := range p.Tokens {
+		if token.Type == tokens.If {
+			ifs = append(ifs, idx)
+		}
+	}
+}
+
 func (p *Parser) Eval() {
 	var stack = []tokens.Token{}
 
@@ -133,7 +143,9 @@ func (p *Parser) Eval() {
 		switch token.Type {
 		case tokens.Int,
 			tokens.Float,
-			tokens.String:
+			tokens.String,
+			tokens.True,
+			tokens.False:
 
 			stack = append(stack, p.consume())
 

@@ -7,7 +7,14 @@ const (
 	Float  TokenType = "FLOAT"
 	String TokenType = "STRING"
 
+	True  TokenType = "TRUE"
+	False TokenType = "FALSE"
+
 	Identifier TokenType = "IDENTIFIER"
+
+	If    TokenType = "IF"
+	Else  TokenType = "ELSE"
+	Endif TokenType = "ENDIF"
 
 	Write   TokenType = "WRITE"
 	Writeln TokenType = "WRITELINE"
@@ -32,6 +39,7 @@ type Token struct {
 	Type    TokenType
 	Literal any
 	Loc     Loc
+	JmpTo   int
 }
 
 var Operators map[string]TokenType = map[string]TokenType{
@@ -50,6 +58,9 @@ var Keywords map[string]TokenType = map[string]TokenType{
 	"write":   Write,
 	"writeln": Writeln,
 	"type":    Type,
+	"if":      If,
+	"else":    Else,
+	"endif":   Endif,
 }
 
 func IsKeyword(content string) bool {
