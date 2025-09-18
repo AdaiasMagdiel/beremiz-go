@@ -53,6 +53,14 @@ func (l *Lexer) prev() byte {
 	}
 }
 
+func (l *Lexer) next() byte {
+	if l.pos+1 >= len(l.content) {
+		return 0
+	} else {
+		return l.content[l.pos+1]
+	}
+}
+
 func (l *Lexer) consume() byte {
 	ch := l.peek()
 
@@ -81,7 +89,10 @@ func (l *Lexer) Tokenize() []tokens.Token {
 
 		ch := l.peek()
 
-		if l.isNum(ch) {
+		if l.isNum(ch) ||
+			ch == '.' && l.isNum(l.next()) ||
+			ch == '-' && l.isNum(l.next()) ||
+			ch == '+' && l.isNum(l.next()) {
 			token := l.extractNumber()
 			ts = append(ts, token)
 		} else if tokens.IsOperator(ch) {

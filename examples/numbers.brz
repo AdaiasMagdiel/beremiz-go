@@ -1,0 +1,20 @@
+42                   writeln   # decimal
+-123                 writeln   # negative decimal
++123                 writeln   # positive decimal
+0                    writeln   # zero
+1_000_000            writeln   # decimal with underscore
+3.14                 writeln   # floating point
+0.0                  writeln   # zero floating point
+.5                   writeln   # floating point with leading dot
+5.                   writeln   # floating point with trailing dot
+-3.14                writeln   # negative floating point
+0xFF                 writeln   # hexadecimal
+0x1a2b3c             writeln   # hexadecimal
+0XDEADBEEF           writeln   # hexadecimal with uppercase letters
+0777                 writeln   # octal
+0o123                writeln   # octal with modern prefix
+0b1010               writeln   # binary
+0B11110000           writeln   # binary with uppercase prefix
+0b1100_0101          writeln   # binary with underscore
+9223372036854775807  writeln   # maximum integer (64-bit)
+-9223372036854775808 writeln   # minimum integer (64-bit)

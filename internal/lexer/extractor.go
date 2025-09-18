@@ -3,6 +3,7 @@ package lexer
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/adaiasmagdiel/beremiz-go/internal/err"
 	"github.com/adaiasmagdiel/beremiz-go/internal/tokens"
@@ -11,40 +12,132 @@ import (
 func (l *Lexer) extractNumber() tokens.Token {
 	var literal string = ""
 	var isInt bool = true
+	var isNegative bool = false
+	var isHex bool = false
+	var isOctal bool = false
+	var isBinary bool = false
 
 	line := l.line
 	col := l.col
 
-	var start int = l.pos
+	if l.peek() == '+' {
+		l.consume()
+	} else if l.peek() == '-' {
+		isNegative = true
+		l.consume()
+	} else if l.peek() == '.' {
+		isInt = false
+		literal += "0."
+		l.consume()
+	} else if l.peek() == '0' && l.isNum(l.next()) {
+		isOctal = true
+	}
+
+loop:
 	for {
 		if l.isAtEnd() {
 			break
 		}
 
 		ch := l.peek()
-		if !l.isNum(ch) {
-			if ch == '.' {
-				if isInt {
-					isInt = false
-				} else {
-					err.LexerError(l.lines, l.getLoc(), "more than one decimal point in number.", -1)
-					l.errorHandler()
-				}
+
+		switch {
+		case l.isWhitespace(ch):
+			break loop
+
+		case ch == '_':
+			l.consume()
+			continue
+
+		case ch == '.' && !isHex && !isOctal && !isBinary:
+			if isInt {
+				isInt = false
 			} else {
-				break
+				err.LexerError(l.lines, tokens.Loc{File: l.file, Line: l.line, Col: max(l.col-1, 0)},
+					"More than one decimal point in number.", 0)
+				l.errorHandler()
+				break loop
 			}
+
+		case ch == 'x' || ch == 'X':
+			if isHex || len(literal) != 1 || literal[0] != '0' {
+				err.LexerError(l.lines, tokens.Loc{File: l.file, Line: l.line, Col: max(l.col-1, 0)},
+					fmt.Sprintf("Invalid hexadecimal literal: expected '0' before '%c', but found '%c'.", ch, l.prev()), 0)
+				l.errorHandler()
+				break loop
+			}
+			isHex = true
+
+		case ch == 'o' || ch == 'O':
+			if isOctal || len(literal) != 1 || literal[0] != '0' {
+				err.LexerError(l.lines, tokens.Loc{File: l.file, Line: l.line, Col: max(l.col-1, 0)},
+					fmt.Sprintf("Invalid octal literal: expected '0' before '%c', but found '%c'.", ch, l.prev()), 0)
+				l.errorHandler()
+				break loop
+			}
+			isOctal = true
+
+		case !isHex && (ch == 'b' || ch == 'B'):
+			if isBinary || len(literal) != 1 || literal[0] != '0' {
+				err.LexerError(l.lines, tokens.Loc{File: l.file, Line: l.line, Col: max(l.col-1, 0)},
+					fmt.Sprintf("Invalid binary literal: expected '0' before '%c', but found '%c'.", ch, l.prev()), 0)
+				l.errorHandler()
+				break loop
+			}
+			isBinary = true
+
+		case isHex && !l.isValidHexadecimal(ch) && l.isAlpha(ch):
+			err.LexerError(l.lines, tokens.Loc{File: l.file, Line: l.line, Col: max(l.col-1, 0)},
+				fmt.Sprintf("Invalid character '%c' in hexadecimal literal.", ch), 0)
+			l.errorHandler()
+			break loop
+
+		case isOctal && !l.isValidOctal(ch) && l.isAlpha(ch):
+			err.LexerError(l.lines, tokens.Loc{File: l.file, Line: l.line, Col: max(l.col-1, 0)},
+				fmt.Sprintf("Invalid character '%c' in octal literal.", ch), 0)
+			l.errorHandler()
+			break loop
+
+		case isBinary && !l.isValidBinary(ch) && l.isAlpha(ch):
+			err.LexerError(l.lines, tokens.Loc{File: l.file, Line: l.line, Col: max(l.col-1, 0)},
+				fmt.Sprintf("Invalid character '%c' in binary literal.", ch), 0)
+			l.errorHandler()
+			break loop
+
+		case !l.isNum(ch) && !isHex && !isOctal:
+			break loop
 		}
-		l.consume()
+
+		literal += strings.ToLower(string(l.consume()))
 	}
 
-	literal = l.content[start:l.pos]
 	if isInt {
-		n, e := strconv.ParseInt(literal, 10, 64)
+		var base int = 10
+		switch {
+		case isHex:
+			literal = literal[2:]
+			base = 16
+		case isOctal:
+			if len(literal) > 1 && literal[1] == 'o' {
+				literal = literal[2:]
+			}
+			base = 8
+		case isBinary:
+			literal = literal[2:]
+			base = 2
+		}
+
+		if isNegative {
+			literal = "-" + literal
+		}
+
+		n, e := strconv.ParseInt(literal, base, 64)
 		if e != nil {
 			n = 0.0
 			err.Error(fmt.Sprintf("Unable to convert literal '%s' to int64.", literal))
 			l.errorHandler()
 		}
+
 		return tokens.Token{
 			Type:    tokens.Int,
 			Literal: n,
@@ -56,6 +149,9 @@ func (l *Lexer) extractNumber() tokens.Token {
 			n = 0.0
 			err.Error(fmt.Sprintf("Unable to convert literal '%s' to float64.", literal))
 			l.errorHandler()
+		}
+		if isNegative {
+			n *= -1
 		}
 		return tokens.Token{
 			Type:    tokens.Float,

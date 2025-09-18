@@ -23,3 +23,15 @@ func (l *Lexer) isAlphaNum(ch byte) bool {
 func (l *Lexer) isValidIdentifier(ch byte) bool {
 	return l.isAlphaNum(ch) || ch == '_'
 }
+
+func (l *Lexer) isValidHexadecimal(ch byte) bool {
+	return l.isNum(ch) || ch >= 'a' && ch <= 'f' || ch >= 'A' && ch <= 'F'
+}
+
+func (l *Lexer) isValidOctal(ch byte) bool {
+	return ch >= '0' && ch <= '7'
+}
+
+func (l *Lexer) isValidBinary(ch byte) bool {
+	return ch == '0' || ch == '1'
+}

@@ -17,7 +17,7 @@ func Error(message string) {
 }
 
 func LexerError(lines []string, loc tokens.Loc, message string, tailLength int) {
-	fmt.Fprintf(os.Stderr, "%s %s\n\n", red("LexerError: "), message)
+	fmt.Fprintf(os.Stderr, "%s%s\n", red("LexerError: "), message)
 
 	line := lines[loc.Line-1]
 	prefix := fmt.Sprintf("%s:%d:%d: ", loc.File, loc.Line, loc.Col)
