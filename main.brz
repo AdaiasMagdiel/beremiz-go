@@ -1,7 +1,0 @@
-true if
-"It's true"
-else
-"It's false"
-endif
-
-writeln
