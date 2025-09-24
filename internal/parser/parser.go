@@ -48,6 +48,10 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 				return nil, tokens.Nil, fmt.Errorf("division by zero")
 			}
 			return float64(x) / float64(y), tokens.Float, nil
+		case tokens.Lt:
+			return x < y, tokens.Bool, nil
+		case tokens.Gt:
+			return x > y, tokens.Bool, nil
 		default:
 			return nil, tokens.Nil, fmt.Errorf("unsupported op: %s", op.Type)
 		}
@@ -65,6 +69,10 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 				return nil, tokens.Nil, fmt.Errorf("division by zero")
 			}
 			return x / y, tokens.Float, nil
+		case tokens.Lt:
+			return x < y, tokens.Bool, nil
+		case tokens.Gt:
+			return x > y, tokens.Bool, nil
 		default:
 			return nil, tokens.Nil, fmt.Errorf("unsupported op: %s", op.Type)
 		}
@@ -249,7 +257,9 @@ func (p *Parser) Eval() {
 		case tokens.Plus,
 			tokens.Minus,
 			tokens.Times,
-			tokens.Div:
+			tokens.Div,
+			tokens.Lt,
+			tokens.Gt:
 
 			if len(stack) < 2 {
 				err.SyntaxError(token, fmt.Sprintf(

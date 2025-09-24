@@ -26,9 +26,11 @@ const (
 	Minus TokenType = "MINUS"
 	Times TokenType = "TIMES"
 	Div   TokenType = "DIV"
-	Eq    TokenType = "EQUALS"
 
+	Eq  TokenType = "EQUALS"
 	Dup TokenType = "DUP"
+	Lt  TokenType = "LOWER_THAN"
+	Gt  TokenType = "GREATER_THAN"
 
 	EOF TokenType = "EOF"
 )
@@ -51,6 +53,8 @@ var Operators map[string]TokenType = map[string]TokenType{
 	"-": Minus,
 	"*": Times,
 	"/": Div,
+	"<": Lt,
+	">": Gt,
 }
 
 func IsOperator(args ...byte) bool {
