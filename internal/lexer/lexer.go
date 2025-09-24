@@ -79,6 +79,10 @@ func (l *Lexer) isAtEnd() bool {
 	return l.pos >= len(l.content)
 }
 
+func (l *Lexer) GetLines() []string {
+	return l.lines
+}
+
 func (l *Lexer) Tokenize() []tokens.Token {
 	var ts = []tokens.Token{}
 

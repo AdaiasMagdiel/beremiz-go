@@ -36,6 +36,6 @@ func LexerError(lines []string, loc tokens.Loc, message string, tailLength int) 
 	fmt.Print("\n")
 }
 
-func SyntaxError(token tokens.Token, message string) {
+func SyntaxError(token tokens.Token, message string, lines []string) {
 	fmt.Fprintf(os.Stderr, "%s%s\n", red("SyntaxError: "), message)
 }

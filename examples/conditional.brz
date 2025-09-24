@@ -1,118 +1,39 @@
-true if
-"It's true"
-else
-"It's false"
-endif
+# ----> "Equal to 5"
 
-writeln
+5
 
-# ------------
-
-false if
-"It's true"
-else
-"It's false"
-endif
+if dup 5 eq do
+    "Equal to 5"
+end
 
 writeln
 
 
-# ------------
+# ----> "Not equal to 7"
 
-true if
-    false if
-        "inner true"
-    else
-        "inner false"
-    endif
+10
+
+if dup 7 eq do
+    "Equal to 7"
 else
-    "outer false"
-endif
+    "Not equal to 7"
+end
 
 writeln
 
-# ------------
 
-true if
-    "A"
+# ----> "Three"
+
+3
+
+if dup 1 eq do
+    "One"
+elif dup 2 eq do
+    "Two"
+elif dup 3 eq do
+    "Three"
 else
-    "B"
-endif
-writeln
-
-false if
-    "C"
-else
-    "D"
-endif
-writeln
-
-# ------------
-
-"" if
-    "non-empty branch"
-else
-    "empty string branch"
-endif
-
-writeln
-
-# ------------
-
-"hello" if
-    "branch taken"
-else
-    "branch skipped"
-endif
-
-writeln
-
-# ------------
-
-0 if
-    "branch with zero"
-else
-    "branch skipped because zero is falsy"
-endif
-
-writeln
-
-# ------------
-
--42 if
-    "negative numbers are truthy"
-else
-    "should not run"
-endif
-
-writeln
-
-# ------------
-
-0.0 if
-    "float branch"
-else
-    "float zero is falsy"
-endif
-
-writeln
-
-# ------------
-
-3.14 if
-    "pi is truthy"
-else
-    "never runs"
-endif
-
-writeln
-
-# ------------
-
-nil if
-    "branch when not nil"
-else
-    "nil is falsy"
-endif
+    "Another number"
+end
 
 writeln

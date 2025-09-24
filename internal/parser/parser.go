@@ -13,9 +13,15 @@ type Parser struct {
 	Tokens       []tokens.Token
 	pos          int
 	errorHandler func()
+	lines        []string
 }
 
-func New(tokens []tokens.Token, errorHandler func()) *Parser {
+type FlowAddr struct {
+	addr  int
+	token tokens.Token
+}
+
+func New(tokens []tokens.Token, errorHandler func(), lines []string) *Parser {
 	if errorHandler == nil {
 		errorHandler = func() {}
 	}
@@ -24,6 +30,7 @@ func New(tokens []tokens.Token, errorHandler func()) *Parser {
 		Tokens:       tokens,
 		pos:          0,
 		errorHandler: errorHandler,
+		lines:        lines,
 	}
 }
 
@@ -105,7 +112,7 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 	}
 }
 
-func (p *Parser) peek() tokens.Token {
+func (p Parser) peek() tokens.Token {
 	return p.Tokens[p.pos]
 }
 
@@ -116,69 +123,105 @@ func (p *Parser) consume() tokens.Token {
 	return token
 }
 
-func (p *Parser) isAtEnd() bool {
+func (p Parser) isAtEnd() bool {
 	return p.pos >= len(p.Tokens) || p.Tokens[p.pos].Type == tokens.EOF
 }
 
-func (p *Parser) handleControlFlow() {
-	var ctrl []int
+func (p Parser) handleControlFlow() {
+	addrInfo := []FlowAddr{}
+	var top FlowAddr
+	var e error
+
+	// Tracks whether we are inside an "if" block (1) or not (0).
+	// This is used to prevent invalid standalone 'elif'/'else'.
+	var blockType uint8 = 0
 
 	for idx, token := range p.Tokens {
 		switch token.Type {
-
 		case tokens.If:
-			ctrl = append(ctrl, idx)
+			// When encountering "if", we mark the start of a new conditional block.
+			// Push it onto the stack so we can later match it with a "do" and an "end".
+			blockType = 1
+			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
 
-		case tokens.Else:
+		case tokens.Elif, tokens.Else:
+			// "elif" and "else" can only exist inside a valid "if" block.
+			// If no "if" was opened, the control flow is invalid.
+			if blockType != 1 {
+				err.SyntaxError(
+					token,
+					fmt.Sprintf("'%s' must follow an 'if ... do' or 'elif ... do' block.", token.Literal),
+					p.lines,
+				)
+				p.errorHandler()
+				break
+			}
 
-			var top int
-			var e error
-			ctrl, top, e = Pop(ctrl)
+			// Each new "elif" or "else" must close the previous "do" block.
+			// This ensures that execution can jump to the correct branch.
+			addrInfo, top, e = Pop(addrInfo)
 
-			if e != nil || top < 0 {
-				msg := "Unexpected 'else' — no active 'if' block"
-				if top < 0 {
-					msg = "Duplicate 'else' — 'if' block already has an 'else'"
+			if e != nil || top.token.Type != tokens.Do {
+				// If we didn't find a "do", then the user wrote an invalid structure.
+				// This protects against "elif"/"else" without a proper "if ... do" or "elif ... do".
+				err.SyntaxError(
+					token,
+					fmt.Sprintf("Invalid '%s' usage. Expected 'if ... do' or 'elif ... do'.", token.Literal),
+					p.lines,
+				)
+				p.errorHandler()
+				break
+			}
+
+			// The closed "do" now knows where execution continues:
+			// immediately after this "elif" or "else".
+			p.Tokens[top.addr].JmpTo = idx + 1
+
+			// Push the new "elif"/"else" as part of the current block chain.
+			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
+
+		case tokens.Do:
+			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
+
+		case tokens.End:
+			// "end" must close a previously opened "if".
+			// If the stack is empty, the code has an extra "end".
+			if len(addrInfo) == 0 {
+				err.SyntaxError(
+					token,
+					"Invalid 'end' usage. No matching 'if' block found.",
+					p.lines,
+				)
+				p.errorHandler()
+				break
+			}
+
+			// We unwind the stack until we find the matching "if".
+			// Along the way, we patch all "do"/"elif"/"else" so they
+			// jump right after this "end", ensuring correct flow.
+			for {
+				addrInfo, top, e = Pop(addrInfo)
+				if e != nil {
+					// If we exhaust the stack before finding "if",
+					// the structure is unbalanced.
+					err.SyntaxError(
+						token,
+						"Unbalanced 'end'. No matching 'if' block found.",
+						p.lines,
+					)
+					p.errorHandler()
+					break
 				}
-				err.SyntaxError(token, msg)
-				p.errorHandler()
-				return
+
+				if top.token.Type != tokens.If {
+					p.Tokens[top.addr].JmpTo = idx + 1
+				}
+
+				// Once we find the opening "if", the block is complete.
+				if top.token.Type == tokens.If {
+					break
+				}
 			}
-
-			p.Tokens[top].JmpTo = idx + 1
-
-			ctrl = append(ctrl, -idx)
-
-		case tokens.Endif:
-			var top int
-			var e error
-			ctrl, top, e = Pop(ctrl)
-
-			if e != nil {
-				err.SyntaxError(token, "Unexpected 'endif' — no open 'if' block")
-				p.errorHandler()
-				return
-			}
-
-			if top < 0 {
-				elseIdx := -top
-				p.Tokens[elseIdx].JmpTo = idx + 1
-			} else {
-				ifIdx := top
-				p.Tokens[ifIdx].JmpTo = idx + 1
-			}
-		}
-	}
-
-	for len(ctrl) > 0 {
-		var top int
-		ctrl, top, _ = Pop(ctrl)
-		if top < 0 {
-			elseIdx := -top
-			err.SyntaxError(p.Tokens[elseIdx], "Syntax error: 'else' without matching 'endif'")
-		} else {
-			ifIdx := top
-			err.SyntaxError(p.Tokens[ifIdx], "Syntax error: 'if' without matching 'endif'")
 		}
 	}
 }
@@ -199,8 +242,7 @@ func (p *Parser) Eval() {
 		case tokens.Int,
 			tokens.Float,
 			tokens.String,
-			tokens.True,
-			tokens.False,
+			tokens.Bool,
 			tokens.Nil:
 			stack = append(stack, p.consume())
 
@@ -212,7 +254,8 @@ func (p *Parser) Eval() {
 			if len(stack) < 2 {
 				err.SyntaxError(token, fmt.Sprintf(
 					"The '%s' operator requires two operands in stack. Found %d.",
-					token.Literal, len(stack)))
+					token.Literal, len(stack)),
+					p.lines)
 				p.errorHandler()
 				return
 			}
@@ -224,14 +267,14 @@ func (p *Parser) Eval() {
 			if (a.Type != tokens.Int && a.Type != tokens.Float) ||
 				(b.Type != tokens.Int && b.Type != tokens.Float) {
 				err.SyntaxError(token, fmt.Sprintf(
-					"Operator '%s' expects int or float.", token.Literal))
+					"Operator '%s' expects int or float.", token.Literal), p.lines)
 				p.errorHandler()
 				return
 			}
 
 			res, e := evalNumBin(token, a, b)
 			if e != nil {
-				err.SyntaxError(token, e.Error())
+				err.SyntaxError(token, e.Error(), p.lines)
 				p.errorHandler()
 				return
 			}
@@ -242,7 +285,7 @@ func (p *Parser) Eval() {
 			tokens.Writeln:
 
 			if len(stack) == 0 {
-				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal))
+				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal), p.lines)
 				p.errorHandler()
 				return
 			}
@@ -259,7 +302,7 @@ func (p *Parser) Eval() {
 
 		case tokens.Type:
 			if len(stack) == 0 {
-				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal))
+				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal), p.lines)
 				p.errorHandler()
 				return
 			}
@@ -281,34 +324,75 @@ func (p *Parser) Eval() {
 				})
 			}
 
+		case tokens.Dup:
+			if len(stack) == 0 {
+				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal), p.lines)
+				p.errorHandler()
+				return
+			}
+
+			a := stack[len(stack)-1]
+			p.consume()
+
+			stack = append(stack, a)
+
+		case tokens.Eq:
+			if len(stack) < 2 {
+				err.SyntaxError(token, fmt.Sprintf(
+					"The '%s' operator requires two operands in stack. Found %d.",
+					token.Literal, len(stack)),
+					p.lines)
+				p.errorHandler()
+				return
+			}
+
+			p.consume()
+
+			a := stack[len(stack)-2]
+			b := stack[len(stack)-1]
+			stack = stack[:len(stack)-2]
+
+			stack = append(stack, tokens.Token{
+				Type:    tokens.Bool,
+				Literal: a.Literal == b.Literal,
+				Loc:     token.Loc,
+				JmpTo:   0,
+			})
+
 		case tokens.If:
+			p.consume()
+
+		case tokens.Elif,
+			tokens.Else:
+			p.pos = p.consume().JmpTo
+
+		case tokens.Do:
 			var top tokens.Token
 			var e error
 			stack, top, e = Pop(stack)
 
 			if e != nil {
-				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal))
+				err.SyntaxError(token, "The 'do' keyword requires value in stack. Stack is empty.", p.lines)
 				p.errorHandler()
 				return
 			}
 
 			var cond bool
-			switch {
-			case top.Type == tokens.True:
-				cond = true
-			case top.Type == tokens.False,
-				top.Type == tokens.Nil:
+			switch top.Type {
+			case tokens.Bool:
+				cond = top.Literal.(bool)
+			case tokens.Nil:
 				cond = false
-			case top.Type == tokens.Int:
+			case tokens.Int:
 				cond = top.Literal != 0
-			case top.Type == tokens.Float:
+			case tokens.Float:
 				cond = top.Literal != 0.0
-			case top.Type == tokens.String:
+			case tokens.String:
 				cond = top.Literal != ""
 			default:
 				err.SyntaxError(token, fmt.Sprintf(
 					"Invalid condition type '%s' cannot be used in a boolean context", top.Type,
-				))
+				), p.lines)
 				p.errorHandler()
 				return
 			}
@@ -319,10 +403,7 @@ func (p *Parser) Eval() {
 				p.pos = token.JmpTo
 			}
 
-		case tokens.Else:
-			p.pos = p.consume().JmpTo
-
-		case tokens.Endif:
+		case tokens.End:
 			p.consume()
 
 		default:

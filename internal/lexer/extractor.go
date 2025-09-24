@@ -186,12 +186,12 @@ func (l *Lexer) extractIdentifier() tokens.Token {
 
 	if tokens.IsKeyword(literal) {
 		kind = tokens.Keywords[literal]
-	} else if literal == "true" {
-		kind = tokens.True
-	} else if literal == "false" {
-		kind = tokens.False
-	} else if literal == "nil" {
-		kind = tokens.Nil
+	} else if literal == "true" || literal == "false" {
+		return tokens.Token{
+			Type:    tokens.Bool,
+			Literal: literal == "true",
+			Loc:     tokens.Loc{File: l.file, Line: line, Col: col},
+		}
 	}
 
 	return tokens.Token{

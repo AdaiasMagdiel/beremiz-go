@@ -49,7 +49,7 @@ func runFile(filepath string) {
 	lexer := lexer.New(content, path.Base(filepath), errorHandler)
 	tokens := lexer.Tokenize()
 
-	parser := parser.New(tokens, errorHandler)
+	parser := parser.New(tokens, errorHandler, lexer.GetLines())
 	parser.Eval()
 }
 
@@ -110,7 +110,7 @@ func processInput(input string) {
 	lexer := lexer.New(input, "stdin", errorHandler)
 	tokens := lexer.Tokenize()
 
-	parser := parser.New(tokens, errorHandler)
+	parser := parser.New(tokens, errorHandler, lexer.GetLines())
 	parser.Eval()
 }
 

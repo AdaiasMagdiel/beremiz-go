@@ -1,0 +1,32 @@
+# +, -, *, /
+
+# --- Decimals (reference) ---
+1 2 + writeln            # -> 3
+10 5 - writeln           # -> 5
+42 3.14 * writeln        # -> 131.88
+5 10 / writeln           # -> 0.5      
+10 5 / writeln           # -> 2
+
+# --- Binary (0b / 0B, underscores allowed) ---
+0b1010 0b0011 + writeln              # 10 + 3   -> 13
+0b11110000 0b00001111 - writeln      # 240 - 15 -> 225
+0b10 0b11 * writeln                  # 2 * 3    -> 6
+0b1010 0b10 / writeln                # 10 / 2   -> 5
+0b1_0000 0b1 + writeln               # 16 + 1   -> 17
+
+# --- Hexadecimal (0x / 0X) ---
+0xFF 0x1 + writeln                   # 255 + 1  -> 256
+0xDEAD 0xBEEF - writeln              # 57005 - 48879 -> 8126
+0x2A 0x2 * writeln                   # 42 * 2   -> 84
+0x10 0x4 / writeln                   # 16 / 4   -> 4
+
+# --- Octal (0o / 0O and legacy 0...) ---
+0o10 0o5 + writeln                   # 8 + 5    -> 13
+0777 0o1 - writeln                   # 511 - 1  -> 510
+0o12 0o10 * writeln                  # 10 * 8   -> 80
+0o100 0o4 / writeln                  # 64 / 4   -> 16
+
+# --- Mixing bases ---
+0b1010 0xA + writeln                 # 10 + 10  -> 20
+0x10 0o10 + writeln                  # 16 + 8   -> 24
+0xF 0b1_0000 + writeln               # 15 + 16  -> 31

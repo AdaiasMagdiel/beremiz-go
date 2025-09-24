@@ -7,15 +7,16 @@ const (
 	Float  TokenType = "FLOAT"
 	String TokenType = "STRING"
 
-	True  TokenType = "TRUE"
-	False TokenType = "FALSE"
-	Nil   TokenType = "NIL"
+	Bool TokenType = "BOOL"
+	Nil  TokenType = "NIL"
 
 	Identifier TokenType = "IDENTIFIER"
 
-	If    TokenType = "IF"
-	Else  TokenType = "ELSE"
-	Endif TokenType = "ENDIF"
+	If   TokenType = "IF"
+	Else TokenType = "ELSE"
+	Elif TokenType = "ELIF"
+	Do   TokenType = "DO"
+	End  TokenType = "END"
 
 	Write   TokenType = "WRITE"
 	Writeln TokenType = "WRITELINE"
@@ -25,6 +26,9 @@ const (
 	Minus TokenType = "MINUS"
 	Times TokenType = "TIMES"
 	Div   TokenType = "DIV"
+	Eq    TokenType = "EQUALS"
+
+	Dup TokenType = "DUP"
 
 	EOF TokenType = "EOF"
 )
@@ -58,9 +62,17 @@ var Keywords map[string]TokenType = map[string]TokenType{
 	"write":   Write,
 	"writeln": Writeln,
 	"type":    Type,
-	"if":      If,
-	"else":    Else,
-	"endif":   Endif,
+
+	"nil": Nil,
+
+	"if":   If,
+	"else": Else,
+	"elif": Elif,
+	"do":   Do,
+	"end":  End,
+
+	"eq":  Eq,
+	"dup": Dup,
 }
 
 func IsKeyword(content string) bool {
