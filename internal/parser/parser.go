@@ -140,8 +140,9 @@ func (p Parser) handleControlFlow() {
 	var top FlowAddr
 	var e error
 
-	// Tracks whether we are inside an "if" block (1) or not (0).
-	// This is used to prevent invalid standalone 'elif'/'else'.
+	// Tracks the active block type: "if" (1), "for" (2), or none (0).
+	// We need to distinguish them, since "elif"/"else" are only valid inside "if",
+	// and "for" needs a loop-back connection not present in "if".
 	var blockType uint8 = 0
 
 	for idx, token := range p.Tokens {
@@ -150,6 +151,12 @@ func (p Parser) handleControlFlow() {
 			// When encountering "if", we mark the start of a new conditional block.
 			// Push it onto the stack so we can later match it with a "do" and an "end".
 			blockType = 1
+			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
+
+		case tokens.For:
+			// When encountering "for", we mark the start of a new conditional block.
+			// Push it onto the stack so we can later match it with a "do" and an "end".
+			blockType = 2
 			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
 
 		case tokens.Elif, tokens.Else:
@@ -202,6 +209,41 @@ func (p Parser) handleControlFlow() {
 				)
 				p.errorHandler()
 				break
+			}
+
+			// Special case: handle "for .. do .. end".
+			if blockType == 2 {
+				if len(addrInfo) < 2 {
+					// Why: a valid for-loop requires at least a "for" + "do".
+					err.SyntaxError(
+						token,
+						"Invalid 'end' usage. No matching 'for .. do' block found.",
+						p.lines,
+					)
+					p.errorHandler()
+					break
+				}
+
+				forFlow := addrInfo[len(addrInfo)-2]
+				doFlow := addrInfo[len(addrInfo)-1]
+
+				if forFlow.token.Type != tokens.For || doFlow.token.Type != tokens.Do {
+					// Why: structure must be exactly "for .. do .. end".
+					err.SyntaxError(
+						token,
+						"Invalid 'end' usage. No matching 'for .. do' block found.",
+						p.lines,
+					)
+					p.errorHandler()
+					break
+				}
+
+				// Why: loop exit jumps back to "for",
+				// and "do" body knows where to continue if loop ends.
+				p.Tokens[idx].JmpTo = forFlow.addr
+				p.Tokens[doFlow.addr].JmpTo = idx + 1
+				addrInfo = addrInfo[:len(addrInfo)-2]
+				continue
 			}
 
 			// We unwind the stack until we find the matching "if".
@@ -369,7 +411,31 @@ func (p *Parser) Eval() {
 				JmpTo:   0,
 			})
 
-		case tokens.If:
+		case tokens.Neq:
+			if len(stack) < 2 {
+				err.SyntaxError(token, fmt.Sprintf(
+					"The '%s' operator requires two operands in stack. Found %d.",
+					token.Literal, len(stack)),
+					p.lines)
+				p.errorHandler()
+				return
+			}
+
+			p.consume()
+
+			a := stack[len(stack)-2]
+			b := stack[len(stack)-1]
+			stack = stack[:len(stack)-2]
+
+			stack = append(stack, tokens.Token{
+				Type:    tokens.Bool,
+				Literal: a.Literal != b.Literal,
+				Loc:     token.Loc,
+				JmpTo:   0,
+			})
+
+		case tokens.If,
+			tokens.For:
 			p.consume()
 
 		case tokens.Elif,
@@ -414,6 +480,10 @@ func (p *Parser) Eval() {
 			}
 
 		case tokens.End:
+			if token.JmpTo > 0 {
+				p.pos = token.JmpTo
+			}
+
 			p.consume()
 
 		default:

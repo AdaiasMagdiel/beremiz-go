@@ -12,6 +12,7 @@ const (
 
 	Identifier TokenType = "IDENTIFIER"
 
+	For  TokenType = "FOR"
 	If   TokenType = "IF"
 	Else TokenType = "ELSE"
 	Elif TokenType = "ELIF"
@@ -28,6 +29,7 @@ const (
 	Div   TokenType = "DIV"
 
 	Eq  TokenType = "EQUALS"
+	Neq TokenType = "NOT_EQUALS"
 	Dup TokenType = "DUP"
 	Lt  TokenType = "LOWER_THAN"
 	Gt  TokenType = "GREATER_THAN"
@@ -69,6 +71,7 @@ var Keywords map[string]TokenType = map[string]TokenType{
 
 	"nil": Nil,
 
+	"for":  For,
 	"if":   If,
 	"else": Else,
 	"elif": Elif,
@@ -76,6 +79,7 @@ var Keywords map[string]TokenType = map[string]TokenType{
 	"end":  End,
 
 	"eq":  Eq,
+	"neq": Neq,
 	"dup": Dup,
 }
 

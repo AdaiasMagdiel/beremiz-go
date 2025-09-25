@@ -1,0 +1,6 @@
+1_000
+
+for dup 0 neq do
+    dup writeln
+    1 -
+end
