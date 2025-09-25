@@ -486,6 +486,12 @@ func (p *Parser) Eval() {
 
 			p.consume()
 
+		case tokens.Identifier:
+			// TODO: Add suport for identifiers
+			err.SyntaxError(token, fmt.Sprintf("Name '%s' is not defined.", token.Literal), p.lines)
+			p.errorHandler()
+			p.consume()
+
 		default:
 			err.Error(fmt.Sprintf("Not implemented case for TokenType '%s'.", token.Type))
 			fmt.Fprintf(os.Stderr, "\x1b[31m%s:%d:%d:\x1b[0m '%s'", token.Loc.File, token.Loc.Line, token.Loc.Col, token.Literal)

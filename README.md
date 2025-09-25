@@ -50,21 +50,25 @@ go run ./cmd/beremiz ./examples/hello_world.brz
 ### Conditionals
 
 ```beremiz
-true if
-    "It's true"
+1
+
+if dup 3 eq do
+    "Equals three"
+elif dup 2 eq do
+    "Equals two"
 else
-    "It's false"
+    "It's one"
 endif
 
 writeln
 ```
 
 ```beremiz
-0 if
+if 0 do
     "Zero is truthy"
 else
     "Zero is falsy"
-endif
+end
 
 writeln
 ```
@@ -88,7 +92,7 @@ nil writeln
 - ✅ Strings (with escapes)
 - ✅ Booleans (`true`, `false`), `nil`
 - ✅ Conditionals (`if / else / endif`)
-- 🚧 Loops
+- ✅ Loops (`for`)
 - 🚧 User-defined words / functions
 - 🚧 Standard library
 

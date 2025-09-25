@@ -25,7 +25,7 @@ contexts:
     # strings in YAML. When using single quoted strings, only single quotes
     # need to be escaped: this is done by using two single quotes next to each
     # other.
-    - match: '\b(type|write|writeln)\b'
+    - match: '\b(type|write|writeln|for|if|do|elif|else|end|dup|eq|neq|nil|true|false)\b'
       scope: keyword.control.beremiz
 
   numbers:
@@ -84,7 +84,7 @@ contexts:
 
   comments:
     # Single-line comment
-    - match: '#.*$'
+    - match: "#.*$"
       scope: comment.line.number-sign.beremiz
     # Block comment
     - match: '#\['

@@ -37,7 +37,7 @@ func LexerError(lines []string, loc tokens.Loc, message string, tailLength int) 
 }
 
 func SyntaxError(token tokens.Token, message string, lines []string) {
-	fmt.Fprintf(os.Stderr, "%s%s\n", red("SyntaxError: "), message)
+	fmt.Fprintf(os.Stderr, "%s%s\n\n", red("SyntaxError: "), message)
 
 	line := lines[token.Loc.Line-1]
 	fmt.Println(token.Loc.File + ":\n")
@@ -45,7 +45,7 @@ func SyntaxError(token tokens.Token, message string, lines []string) {
 
 	fmt.Printf("\x1b[31m%s\x1b[0m%s\n", prefix, line)
 
-	trail := strings.Repeat(" ", token.Loc.Col-2+len(prefix))
+	trail := strings.Repeat(" ", token.Loc.Col-1+len(prefix))
 	fmt.Print(trail)
 	fmt.Print(red("^"))
 	fmt.Print("\n")
