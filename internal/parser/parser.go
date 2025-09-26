@@ -388,7 +388,7 @@ func (p *Parser) Eval() {
 
 			stack = append(stack, a)
 
-		case tokens.Swap:
+		case tokens.Over:
 			if len(stack) < 2 {
 				err.SyntaxError(token, fmt.Sprintf(
 					"The '%s' operator requires two operands in stack. Found %d.",
@@ -400,7 +400,9 @@ func (p *Parser) Eval() {
 
 			p.consume()
 
-			stack[len(stack)-1], stack[len(stack)-2] = stack[len(stack)-2], stack[len(stack)-1]
+			v := stack[len(stack)-2]
+
+			stack = append(stack, v)
 
 		case tokens.Pop:
 			var e error
@@ -413,6 +415,25 @@ func (p *Parser) Eval() {
 			}
 
 			p.consume()
+
+		case tokens.Depth:
+			p.consume()
+			stack = append(stack, tokens.Token{
+				Type:    tokens.Int,
+				Literal: len(stack),
+				Loc:     token.Loc,
+			})
+
+		case tokens.Dump:
+			p.consume()
+			fmt.Printf("Stack[%d]:\n", len(stack))
+			for i, v := range stack {
+				fmt.Printf("  %d: (%s) %v", i, strings.ToLower(string(v.Type)), v.Literal)
+				if i == len(stack)-1 {
+					fmt.Printf("  <- top")
+				}
+				fmt.Println()
+			}
 
 		case tokens.Eq:
 			if len(stack) < 2 {

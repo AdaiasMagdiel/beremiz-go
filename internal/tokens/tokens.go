@@ -33,9 +33,12 @@ const (
 	Lt  TokenType = "LOWER_THAN"
 	Gt  TokenType = "GREATER_THAN"
 
-	Dup  TokenType = "DUP"
-	Pop  TokenType = "POP"
-	Swap TokenType = "SWAP"
+	Dup   TokenType = "DUP"
+	Pop   TokenType = "POP"
+	Swap  TokenType = "SWAP"
+	Over  TokenType = "OVER"
+	Depth TokenType = "DEPTH"
+	Dump  TokenType = "DUMP"
 
 	EOF TokenType = "EOF"
 )
@@ -81,11 +84,14 @@ var Keywords map[string]TokenType = map[string]TokenType{
 	"do":   Do,
 	"end":  End,
 
-	"eq":   Eq,
-	"neq":  Neq,
-	"dup":  Dup,
-	"pop":  Pop,
-	"swap": Swap,
+	"eq":    Eq,
+	"neq":   Neq,
+	"dup":   Dup,
+	"pop":   Pop,
+	"swap":  Swap,
+	"over":  Over,
+	"depth": Depth,
+	"dump":  Dump,
 }
 
 func IsKeyword(content string) bool {
