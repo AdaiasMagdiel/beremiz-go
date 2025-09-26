@@ -30,9 +30,12 @@ const (
 
 	Eq  TokenType = "EQUALS"
 	Neq TokenType = "NOT_EQUALS"
-	Dup TokenType = "DUP"
 	Lt  TokenType = "LOWER_THAN"
 	Gt  TokenType = "GREATER_THAN"
+
+	Dup  TokenType = "DUP"
+	Pop  TokenType = "POP"
+	Swap TokenType = "SWAP"
 
 	EOF TokenType = "EOF"
 )
@@ -78,9 +81,11 @@ var Keywords map[string]TokenType = map[string]TokenType{
 	"do":   Do,
 	"end":  End,
 
-	"eq":  Eq,
-	"neq": Neq,
-	"dup": Dup,
+	"eq":   Eq,
+	"neq":  Neq,
+	"dup":  Dup,
+	"pop":  Pop,
+	"swap": Swap,
 }
 
 func IsKeyword(content string) bool {

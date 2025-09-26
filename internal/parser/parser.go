@@ -388,6 +388,32 @@ func (p *Parser) Eval() {
 
 			stack = append(stack, a)
 
+		case tokens.Swap:
+			if len(stack) < 2 {
+				err.SyntaxError(token, fmt.Sprintf(
+					"The '%s' operator requires two operands in stack. Found %d.",
+					token.Literal, len(stack)),
+					p.lines)
+				p.errorHandler()
+				return
+			}
+
+			p.consume()
+
+			stack[len(stack)-1], stack[len(stack)-2] = stack[len(stack)-2], stack[len(stack)-1]
+
+		case tokens.Pop:
+			var e error
+
+			stack, _, e = Pop(stack)
+			if e != nil {
+				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal), p.lines)
+				p.errorHandler()
+				return
+			}
+
+			p.consume()
+
 		case tokens.Eq:
 			if len(stack) < 2 {
 				err.SyntaxError(token, fmt.Sprintf(
