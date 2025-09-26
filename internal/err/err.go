@@ -47,6 +47,13 @@ func SyntaxError(token tokens.Token, message string, lines []string) {
 
 	trail := strings.Repeat(" ", token.Loc.Col-1+len(prefix))
 	fmt.Print(trail)
+
+	lit, ok := token.Literal.(string)
+	if !ok {
+		lit = fmt.Sprint(token.Literal)
+	}
 	fmt.Print(red("^"))
+	fmt.Print(red(strings.Repeat("~", len(lit)-1)))
+
 	fmt.Print("\n")
 }
