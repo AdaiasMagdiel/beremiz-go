@@ -1,0 +1,3 @@
+[submodule ".syntax-highlight/vscode"]
+	path = .syntax-highlight/vscode
+	url = https://github.com/AdaiasMagdiel/beremiz-brz-vscode-syntax.git
