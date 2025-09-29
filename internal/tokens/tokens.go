@@ -39,6 +39,8 @@ const (
 	Over  TokenType = "OVER"
 	Depth TokenType = "DEPTH"
 	Dump  TokenType = "DUMP"
+	Clear TokenType = "CLEAR"
+	Rot   TokenType = "ROT"
 
 	EOF TokenType = "EOF"
 )
@@ -92,6 +94,8 @@ var Keywords map[string]TokenType = map[string]TokenType{
 	"over":  Over,
 	"depth": Depth,
 	"dump":  Dump,
+	"clear": Clear,
+	"rot":   Rot,
 }
 
 func IsKeyword(content string) bool {

@@ -448,6 +448,10 @@ func (p *Parser) Eval() {
 				fmt.Println()
 			}
 
+		case tokens.Clear:
+			p.consume()
+			stack = stack[:0]
+
 		case tokens.Eq:
 			if len(stack) < 2 {
 				err.SyntaxError(token, fmt.Sprintf(
