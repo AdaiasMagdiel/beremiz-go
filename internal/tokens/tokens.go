@@ -27,6 +27,7 @@ const (
 	Minus TokenType = "MINUS"
 	Times TokenType = "TIMES"
 	Div   TokenType = "DIV"
+	Exp   TokenType = "EXP"
 
 	Eq  TokenType = "EQUALS"
 	Neq TokenType = "NOT_EQUALS"

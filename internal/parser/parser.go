@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -52,6 +53,8 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 			return x < y, tokens.Bool, nil
 		case tokens.Gt:
 			return x > y, tokens.Bool, nil
+		case tokens.Exp:
+			return math.Pow(float64(x), float64(y)), tokens.Float, nil
 		default:
 			return nil, tokens.Nil, fmt.Errorf("unsupported op: %s", op.Type)
 		}
@@ -73,6 +76,8 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 			return x < y, tokens.Bool, nil
 		case tokens.Gt:
 			return x > y, tokens.Bool, nil
+		case tokens.Exp:
+			return math.Pow(x, y), tokens.Float, nil
 		default:
 			return nil, tokens.Nil, fmt.Errorf("unsupported op: %s", op.Type)
 		}
@@ -301,7 +306,8 @@ func (p *Parser) Eval() {
 			tokens.Times,
 			tokens.Div,
 			tokens.Lt,
-			tokens.Gt:
+			tokens.Gt,
+			tokens.Exp:
 
 			if len(stack) < 2 {
 				err.SyntaxError(token, fmt.Sprintf(

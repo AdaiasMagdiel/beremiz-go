@@ -100,11 +100,21 @@ func (l *Lexer) Tokenize() []tokens.Token {
 			token := l.extractNumber()
 			ts = append(ts, token)
 		} else if tokens.IsOperator(ch) {
-			ts = append(ts, tokens.Token{
-				Type:    tokens.Operators[string(ch)],
-				Literal: string(l.consume()),
-				Loc:     l.getLoc(),
-			})
+			if ch == '*' && l.next() == '*' {
+				ts = append(ts, tokens.Token{
+					Type:    tokens.Exp,
+					Literal: "**",
+					Loc:     l.getLoc(),
+				})
+				l.consume()
+				l.consume()
+			} else {
+				ts = append(ts, tokens.Token{
+					Type:    tokens.Operators[string(ch)],
+					Literal: string(l.consume()),
+					Loc:     l.getLoc(),
+				})
+			}
 		} else if l.isAlpha(ch) || ch == '_' {
 			token := l.extractIdentifier()
 			ts = append(ts, token)
