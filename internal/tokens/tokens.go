@@ -22,6 +22,7 @@ const (
 	Write   TokenType = "WRITE"
 	Writeln TokenType = "WRITELINE"
 	Type    TokenType = "TYPE"
+	Define  TokenType = "DEFINE"
 
 	Plus  TokenType = "PLUS"
 	Minus TokenType = "MINUS"
@@ -77,6 +78,7 @@ var Keywords map[string]TokenType = map[string]TokenType{
 	"write":   Write,
 	"writeln": Writeln,
 	"type":    Type,
+	"define":  Define,
 
 	"nil": Nil,
 

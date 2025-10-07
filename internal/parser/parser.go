@@ -140,36 +140,34 @@ func (p Parser) isAtEnd() bool {
 	return p.pos >= len(p.Tokens) || p.Tokens[p.pos].Type == tokens.EOF
 }
 
-func (p Parser) handleControlFlow() {
+func (p Parser) handleControlFlow() map[string][]tokens.Token {
 	addrInfo := []FlowAddr{}
 	var top FlowAddr
 	var e error
 
-	// Tracks the active block type: "if" (1), "for" (2), or none (0).
-	// We need to distinguish them, since "elif"/"else" are only valid inside "if",
-	// and "for" needs a loop-back connection not present in "if".
-	var blockType uint8 = 0
+	defs := make(map[string][]tokens.Token)
+	var keys []string
 
-	for idx, token := range p.Tokens {
+	var blockStack []BlockType // 🧱 pilha de tipos de bloco
+
+	var idx int = 0
+
+	for {
+		if idx >= len(p.Tokens) || p.Tokens[idx].Type == tokens.EOF {
+			break
+		}
+
+		token := p.Tokens[idx]
+
 		switch token.Type {
 		case tokens.If:
-			// When encountering "if", we mark the start of a new conditional block.
-			// Push it onto the stack so we can later match it with a "do" and an "end".
-			blockType = 1
+			blockStack = append(blockStack, BlockIf)
 			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
-
-		case tokens.For:
-			// When encountering "for", we mark the start of a new conditional block.
-			// Push it onto the stack so we can later match it with a "do" and an "end".
-			blockType = 2
-			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
+			idx++
 
 		case tokens.Elif, tokens.Else:
-			// "elif" and "else" can only exist inside a valid "if" block.
-			// If no "if" was opened, the control flow is invalid.
-			if blockType != 1 {
-				err.SyntaxError(
-					token,
+			if len(blockStack) == 0 || blockStack[len(blockStack)-1] != BlockIf {
+				err.SyntaxError(token,
 					fmt.Sprintf("'%s' must follow an 'if ... do' or 'elif ... do' block.", token.Literal),
 					p.lines,
 				)
@@ -177,15 +175,9 @@ func (p Parser) handleControlFlow() {
 				break
 			}
 
-			// Each new "elif" or "else" must close the previous "do" block.
-			// This ensures that execution can jump to the correct branch.
 			addrInfo, top, e = Pop(addrInfo)
-
 			if e != nil || top.token.Type != tokens.Do {
-				// If we didn't find a "do", then the user wrote an invalid structure.
-				// This protects against "elif"/"else" without a proper "if ... do" or "elif ... do".
-				err.SyntaxError(
-					token,
+				err.SyntaxError(token,
 					fmt.Sprintf("Invalid '%s' usage. Expected 'if ... do' or 'elif ... do'.", token.Literal),
 					p.lines,
 				)
@@ -193,92 +185,134 @@ func (p Parser) handleControlFlow() {
 				break
 			}
 
-			// The closed "do" now knows where execution continues:
-			// immediately after this "elif" or "else".
 			p.Tokens[top.addr].JmpTo = idx + 1
-
-			// Push the new "elif"/"else" as part of the current block chain.
 			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
+			idx++
+
+		case tokens.For:
+			blockStack = append(blockStack, BlockFor)
+			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
+			idx++
 
 		case tokens.Do:
 			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
+			idx++
 
-		case tokens.End:
-			// "end" must close a previously opened "if".
-			// If the stack is empty, the code has an extra "end".
-			if len(addrInfo) == 0 {
-				err.SyntaxError(
-					token,
-					"Invalid 'end' usage. No matching 'if' block found.",
+		case tokens.Define:
+			blockStack = append(blockStack, BlockDefine)
+			addrInfo = append(addrInfo, FlowAddr{addr: idx, token: token})
+
+			if idx+1 >= len(p.Tokens) || p.Tokens[idx+1].Type != tokens.Identifier {
+				err.SyntaxError(token,
+					fmt.Sprintf("Expected identifier after 'define' keyword, but got '%s'.",
+						strings.ToLower(string(p.Tokens[idx+1].Type))),
 					p.lines,
 				)
 				p.errorHandler()
 				break
 			}
 
-			// Special case: handle "for .. do .. end".
-			if blockType == 2 {
+			key := p.Tokens[idx+1].Literal.(string)
+			defs[key] = []tokens.Token{}
+			keys = append(keys, key)
+
+			idx += 2
+			continue
+
+		case tokens.End:
+			if len(blockStack) == 0 {
+				err.SyntaxError(token,
+					"Invalid 'end' usage. No matching block found.",
+					p.lines,
+				)
+				p.errorHandler()
+				break
+			}
+
+			current := blockStack[len(blockStack)-1]
+			blockStack = blockStack[:len(blockStack)-1]
+
+			switch current {
+			case BlockFor:
 				if len(addrInfo) < 2 {
-					// Why: a valid for-loop requires at least a "for" + "do".
-					err.SyntaxError(
-						token,
+					err.SyntaxError(token,
 						"Invalid 'end' usage. No matching 'for .. do' block found.",
 						p.lines,
 					)
 					p.errorHandler()
 					break
 				}
-
 				forFlow := addrInfo[len(addrInfo)-2]
 				doFlow := addrInfo[len(addrInfo)-1]
 
-				if forFlow.token.Type != tokens.For || doFlow.token.Type != tokens.Do {
-					// Why: structure must be exactly "for .. do .. end".
-					err.SyntaxError(
-						token,
-						"Invalid 'end' usage. No matching 'for .. do' block found.",
-						p.lines,
-					)
-					p.errorHandler()
-					break
-				}
-
-				// Why: loop exit jumps back to "for",
-				// and "do" body knows where to continue if loop ends.
 				p.Tokens[idx].JmpTo = forFlow.addr
 				p.Tokens[doFlow.addr].JmpTo = idx + 1
 				addrInfo = addrInfo[:len(addrInfo)-2]
-				continue
-			}
 
-			// We unwind the stack until we find the matching "if".
-			// Along the way, we patch all "do"/"elif"/"else" so they
-			// jump right after this "end", ensuring correct flow.
-			for {
-				addrInfo, top, e = Pop(addrInfo)
-				if e != nil {
-					// If we exhaust the stack before finding "if",
-					// the structure is unbalanced.
-					err.SyntaxError(
-						token,
-						"Unbalanced 'end'. No matching 'if' block found.",
+			case BlockDefine:
+				if len(addrInfo) == 0 {
+					err.SyntaxError(token,
+						"Invalid 'end' usage. No matching 'define' block found.",
 						p.lines,
 					)
 					p.errorHandler()
 					break
 				}
-
-				if top.token.Type != tokens.If {
-					p.Tokens[top.addr].JmpTo = idx + 1
-				}
-
-				// Once we find the opening "if", the block is complete.
-				if top.token.Type == tokens.If {
+				defineFlow := addrInfo[len(addrInfo)-1]
+				if defineFlow.token.Type != tokens.Define {
+					err.SyntaxError(token,
+						fmt.Sprintf("Mismatched 'end' block. Expected to close 'define', but found '%s'.",
+							defineFlow.token.Literal),
+						p.lines,
+					)
+					p.errorHandler()
 					break
 				}
+				p.Tokens[defineFlow.addr].JmpTo = idx + 1
+				addrInfo = addrInfo[:len(addrInfo)-1]
+				keys = keys[:len(keys)-1]
+
+			case BlockIf:
+				for {
+					addrInfo, top, e = Pop(addrInfo)
+					if e != nil {
+						err.SyntaxError(token,
+							"Unbalanced 'end'. No matching 'if' block found.",
+							p.lines,
+						)
+						p.errorHandler()
+						break
+					}
+					if top.token.Type != tokens.If {
+						p.Tokens[top.addr].JmpTo = idx + 1
+					}
+					if top.token.Type == tokens.If {
+						break
+					}
+				}
 			}
+			idx++
+			continue
+
+		default:
+			if len(blockStack) > 0 && blockStack[len(blockStack)-1] == BlockDefine {
+				if len(keys) == 0 {
+					err.SyntaxError(token,
+						fmt.Sprintf("Expected identifier after 'define' keyword, but got '%s'.",
+							strings.ToLower(string(token.Type))),
+						p.lines,
+					)
+					p.errorHandler()
+					break
+				}
+				key := keys[len(keys)-1]
+				defs[key] = append(defs[key], token)
+			}
+			idx++
 		}
 	}
+
+	return defs
 }
 
 func (p *Parser) Eval() {

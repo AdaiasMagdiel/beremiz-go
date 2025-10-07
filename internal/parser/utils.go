@@ -2,6 +2,15 @@ package parser
 
 import "errors"
 
+type BlockType uint8
+
+const (
+	BlockNone BlockType = iota
+	BlockIf
+	BlockFor
+	BlockDefine
+)
+
 func Pop[T any](s []T) ([]T, T, error) {
 	var zero T
 	if len(s) == 0 {
