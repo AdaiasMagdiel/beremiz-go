@@ -1,0 +1,36 @@
+# Basic test for the DEFINE system
+
+# Constant for PI
+define PI
+  3.14159
+end
+
+# Squares a number (n → n²)
+define square
+  dup *
+end
+
+# Calculates the area of a circle: πr²
+define circle_area
+  dup * PI *
+end
+
+# Adds 2 to a number (n → n + 2)
+define add_two
+  2 +
+end
+
+# --- Execution tests ---
+5 square writeln          # Expected: 25
+10 circle_area writeln    # Expected: 314.159
+8 add_two writeln         # Expected: 10
+
+
+# --------------
+# Nested define expansion test
+
+define a 5 end            # a = 5
+define b a 10 * end       # b = 5 * 10
+define c b 2 * end        # c = (5 * 10) * 2
+
+c writeln                 # Expected: 100
