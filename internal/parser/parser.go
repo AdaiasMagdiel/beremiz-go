@@ -148,7 +148,7 @@ func (p Parser) handleControlFlow() map[string][]tokens.Token {
 	defs := make(map[string][]tokens.Token)
 	var keys []string
 
-	var blockStack []BlockType // 🧱 pilha de tipos de bloco
+	var blockStack []BlockType
 
 	var idx int = 0
 
@@ -315,10 +315,87 @@ func (p Parser) handleControlFlow() map[string][]tokens.Token {
 	return defs
 }
 
+func expandDefs(defs map[string][]tokens.Token) {
+	changed := true
+
+	for i := 0; i < 20 && changed; i++ {
+		changed = false
+
+		for key, body := range defs {
+			var expanded []tokens.Token
+
+			for _, t := range body {
+				if t.Type == tokens.Identifier {
+					name := fmt.Sprintf("%v", t.Literal)
+					if inner, ok := defs[name]; ok {
+						expanded = append(expanded, inner...)
+						changed = true
+						continue
+					}
+				}
+				expanded = append(expanded, t)
+			}
+
+			defs[key] = expanded
+		}
+	}
+}
+
+func (p *Parser) removeDefineBlocks() {
+	var cleaned []tokens.Token
+	skip := false
+
+	for _, t := range p.Tokens {
+		if t.Type == tokens.Define {
+			skip = true
+			continue
+		}
+		if skip && t.Type == tokens.End {
+			skip = false
+			continue
+		}
+		if !skip {
+			cleaned = append(cleaned, t)
+		}
+	}
+
+	p.Tokens = cleaned
+}
+
+func (p *Parser) expandBlocks(defs map[string][]tokens.Token) {
+	var expanded []tokens.Token
+
+	for idx := 0; idx < len(p.Tokens); idx++ {
+		token := p.Tokens[idx]
+
+		if token.Type == tokens.Identifier {
+			key := fmt.Sprintf("%v", token.Literal)
+
+			if body, ok := defs[key]; ok {
+				for _, t := range body {
+					clone := t
+					if clone.Loc.File == "" {
+						clone.Loc = token.Loc
+					}
+					expanded = append(expanded, clone)
+				}
+				continue
+			}
+		}
+
+		expanded = append(expanded, token)
+	}
+
+	p.Tokens = expanded
+}
+
 func (p *Parser) Eval() {
 	var stack = []tokens.Token{}
 
-	p.handleControlFlow()
+	defs := p.handleControlFlow()
+	expandDefs(defs)
+	p.removeDefineBlocks()
+	p.expandBlocks(defs)
 
 	for {
 		if p.isAtEnd() {
@@ -543,7 +620,8 @@ func (p *Parser) Eval() {
 			p.consume()
 
 		case tokens.Elif,
-			tokens.Else:
+			tokens.Else,
+			tokens.Define:
 			p.pos = p.consume().JmpTo
 
 		case tokens.Do:
