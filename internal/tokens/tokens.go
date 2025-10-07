@@ -34,6 +34,8 @@ const (
 	Neq TokenType = "NOT_EQUALS"
 	Lt  TokenType = "LOWER_THAN"
 	Gt  TokenType = "GREATER_THAN"
+	Le  TokenType = "LOWER_OR_EQUALS"
+	Ge  TokenType = "GREATER_OR_EQUALS"
 
 	Dup   TokenType = "DUP"
 	Pop   TokenType = "POP"

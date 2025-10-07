@@ -53,6 +53,10 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 			return x < y, tokens.Bool, nil
 		case tokens.Gt:
 			return x > y, tokens.Bool, nil
+		case tokens.Le:
+			return x <= y, tokens.Bool, nil
+		case tokens.Ge:
+			return x >= y, tokens.Bool, nil
 		case tokens.Exp:
 			return math.Pow(float64(x), float64(y)), tokens.Float, nil
 		default:
@@ -76,6 +80,10 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 			return x < y, tokens.Bool, nil
 		case tokens.Gt:
 			return x > y, tokens.Bool, nil
+		case tokens.Le:
+			return x <= y, tokens.Bool, nil
+		case tokens.Ge:
+			return x >= y, tokens.Bool, nil
 		case tokens.Exp:
 			return math.Pow(x, y), tokens.Float, nil
 		default:
@@ -418,6 +426,8 @@ func (p *Parser) Eval() {
 			tokens.Div,
 			tokens.Lt,
 			tokens.Gt,
+			tokens.Le,
+			tokens.Ge,
 			tokens.Exp:
 
 			if len(stack) < 2 {

@@ -108,6 +108,23 @@ func (l *Lexer) Tokenize() []tokens.Token {
 				})
 				l.consume()
 				l.consume()
+
+			} else if ch == '<' && l.next() == '=' {
+				ts = append(ts, tokens.Token{
+					Type:    tokens.Le,
+					Literal: "<=",
+					Loc:     l.getLoc(),
+				})
+				l.consume()
+				l.consume()
+			} else if ch == '>' && l.next() == '=' {
+				ts = append(ts, tokens.Token{
+					Type:    tokens.Ge,
+					Literal: ">=",
+					Loc:     l.getLoc(),
+				})
+				l.consume()
+				l.consume()
 			} else {
 				ts = append(ts, tokens.Token{
 					Type:    tokens.Operators[string(ch)],
