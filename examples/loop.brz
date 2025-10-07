@@ -4,3 +4,16 @@ for dup 0 neq do
     dup writeln
     1 -
 end
+
+
+10
+for dup 0 neq do
+    if dup 5 eq do
+        "five!" writeln
+    else
+        "Number: " write
+        dup writeln
+    end
+
+    1 -
+end
