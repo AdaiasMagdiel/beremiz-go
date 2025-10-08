@@ -1,0 +1,22 @@
+define fibonacci
+over over +   # stack: 15 0 1 0 -> 15 0 1 0 1 -> 15 0 1 1
+rot pop       # stack: 15 1 1 0 -> 15 1 1
+end
+
+15   # stack: 15
+0 1  # stack: 15 0 1
+for
+    rot  # stack: 0 1 15
+    dup  # stack: 0 1 15 15
+    rot  # stack: 0 15 15 1
+    dup  # stack: 0 15 15 1 1
+    rot  # stack: 0 15 1 1 15
+    <    # stack: 0 15 1 bool
+do       # stack: 0 15 1
+    rot swap   # stack: 15 1 0 -> 15 0 1
+    fibonacci  # stack: 15 1 1
+    swap       # stack: 15 1 1
+    dup        # stack: 15 1 1 1
+    writeln    # stack: 15 1 1
+    swap       # stack: 15 1 1
+end
