@@ -36,6 +36,11 @@ const (
 	Gt  TokenType = "GREATER_THAN"
 	Le  TokenType = "LOWER_OR_EQUALS"
 	Ge  TokenType = "GREATER_OR_EQUALS"
+	Mod TokenType = "MODULO"
+
+	And TokenType = "AND"
+	Not TokenType = "NOT"
+	Or  TokenType = "OR"
 
 	Dup   TokenType = "DUP"
 	Pop   TokenType = "POP"
@@ -69,6 +74,7 @@ var Operators map[string]TokenType = map[string]TokenType{
 	"/": Div,
 	"<": Lt,
 	">": Gt,
+	"%": Mod,
 }
 
 func IsOperator(args ...byte) bool {
@@ -101,6 +107,10 @@ var Keywords map[string]TokenType = map[string]TokenType{
 	"dump":  Dump,
 	"clear": Clear,
 	"rot":   Rot,
+
+	"and": And,
+	"not": Not,
+	"or":  Or,
 }
 
 func IsKeyword(content string) bool {

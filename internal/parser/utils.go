@@ -1,6 +1,10 @@
 package parser
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/adaiasmagdiel/beremiz-go/internal/tokens"
+)
 
 type BlockType uint8
 
@@ -19,4 +23,21 @@ func Pop[T any](s []T) ([]T, T, error) {
 	last := s[len(s)-1]
 	s = s[:len(s)-1]
 	return s, last, nil
+}
+
+func toBool(t tokens.Token) bool {
+	switch t.Type {
+	case tokens.Bool:
+		return t.Literal.(bool)
+	case tokens.Nil:
+		return false
+	case tokens.Int:
+		return t.Literal != 0
+	case tokens.Float:
+		return t.Literal != 0.0
+	case tokens.String:
+		return t.Literal != ""
+	default:
+		return false
+	}
 }

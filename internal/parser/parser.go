@@ -59,6 +59,16 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 			return x >= y, tokens.Bool, nil
 		case tokens.Exp:
 			return math.Pow(float64(x), float64(y)), tokens.Float, nil
+		case tokens.Mod:
+			if y == 0 {
+				return nil, tokens.Nil, fmt.Errorf("modulo by zero")
+			}
+
+			r := x % y
+			if r != 0 && ((y > 0 && r < 0) || (y < 0 && r > 0)) {
+				r += y
+			}
+			return r, tokens.Int, nil
 		default:
 			return nil, tokens.Nil, fmt.Errorf("unsupported op: %s", op.Type)
 		}
@@ -86,6 +96,16 @@ func evalNumBin(op, a, b tokens.Token) (tokens.Token, error) {
 			return x >= y, tokens.Bool, nil
 		case tokens.Exp:
 			return math.Pow(x, y), tokens.Float, nil
+		case tokens.Mod:
+			if y == 0 {
+				return nil, tokens.Nil, fmt.Errorf("modulo by zero")
+			}
+
+			r := math.Mod(x, y)
+			if r != 0 && ((y > 0 && r < 0) || (y < 0 && r > 0)) {
+				r += y
+			}
+			return r, tokens.Float, nil
 		default:
 			return nil, tokens.Nil, fmt.Errorf("unsupported op: %s", op.Type)
 		}
@@ -349,41 +369,44 @@ func expandDefs(defs map[string][]tokens.Token) {
 	}
 }
 
-func (p *Parser) removeDefineBlocks() {
-	var cleaned []tokens.Token
-	skip := false
-
-	for _, t := range p.Tokens {
-		if t.Type == tokens.Define {
-			skip = true
-			continue
-		}
-		if skip && t.Type == tokens.End {
-			skip = false
-			continue
-		}
-		if !skip {
-			cleaned = append(cleaned, t)
-		}
-	}
-
-	p.Tokens = cleaned
-}
-
 func (p *Parser) expandBlocks(defs map[string][]tokens.Token) {
 	var expanded []tokens.Token
 
 	for idx := 0; idx < len(p.Tokens); idx++ {
-		token := p.Tokens[idx]
+		tok := p.Tokens[idx]
 
-		if token.Type == tokens.Identifier {
-			key := fmt.Sprintf("%v", token.Literal)
+		if tok.Type == tokens.Define {
+			end := tok.JmpTo
+			if end == 0 || end > len(p.Tokens) {
+				depth := 1
+				j := idx + 1
+				for j < len(p.Tokens) && depth > 0 {
+					switch p.Tokens[j].Type {
+					case tokens.Define:
+						depth++
+					case tokens.End:
+						depth--
+					default:
+						// no-op
+					}
+					j++
+				}
+				end = j
+			}
+			for i := idx; i < end; i++ {
+				expanded = append(expanded, p.Tokens[i])
+			}
+			idx = end - 1
+			continue
+		}
 
+		if tok.Type == tokens.Identifier {
+			key := fmt.Sprintf("%v", tok.Literal)
 			if body, ok := defs[key]; ok {
 				for _, t := range body {
 					clone := t
 					if clone.Loc.File == "" {
-						clone.Loc = token.Loc
+						clone.Loc = tok.Loc
 					}
 					expanded = append(expanded, clone)
 				}
@@ -391,7 +414,7 @@ func (p *Parser) expandBlocks(defs map[string][]tokens.Token) {
 			}
 		}
 
-		expanded = append(expanded, token)
+		expanded = append(expanded, tok)
 	}
 
 	p.Tokens = expanded
@@ -402,8 +425,8 @@ func (p *Parser) Eval() {
 
 	defs := p.handleControlFlow()
 	expandDefs(defs)
-	p.removeDefineBlocks()
 	p.expandBlocks(defs)
+	p.handleControlFlow()
 
 	for {
 		if p.isAtEnd() {
@@ -428,7 +451,8 @@ func (p *Parser) Eval() {
 			tokens.Gt,
 			tokens.Le,
 			tokens.Ge,
-			tokens.Exp:
+			tokens.Exp,
+			tokens.Mod:
 
 			if len(stack) < 2 {
 				err.SyntaxError(token, fmt.Sprintf(
@@ -458,6 +482,52 @@ func (p *Parser) Eval() {
 				return
 			}
 			stack = append(stack, res)
+			p.consume()
+
+		case tokens.And, tokens.Or:
+			if len(stack) < 2 {
+				err.SyntaxError(token, fmt.Sprintf(
+					"The '%s' operator requires two operands in stack. Found %d.",
+					token.Literal, len(stack)),
+					p.lines)
+				p.errorHandler()
+				return
+			}
+
+			left := stack[len(stack)-2]
+			right := stack[len(stack)-1]
+			stack = stack[:len(stack)-2]
+
+			condLeft := toBool(left)
+			condRight := toBool(right)
+
+			result := false
+
+			switch token.Type {
+			case tokens.And:
+				if !condLeft {
+					result = false
+				} else {
+					result = condRight
+				}
+			case tokens.Or:
+				if condLeft {
+					result = true
+				} else {
+					result = condRight
+				}
+			default:
+				err.SyntaxError(token, fmt.Sprintf("unsupported logical operator: %s", token.Literal), p.lines)
+				p.errorHandler()
+				return
+			}
+
+			stack = append(stack, tokens.Token{
+				Type:    tokens.Bool,
+				Literal: result,
+				Loc:     token.Loc,
+			})
+
 			p.consume()
 
 		case tokens.Write,
@@ -556,6 +626,25 @@ func (p *Parser) Eval() {
 			v := stack[len(stack)-2]
 
 			stack = append(stack, v)
+
+		case tokens.Rot:
+			if len(stack) < 3 {
+				err.SyntaxError(token, fmt.Sprintf(
+					"The '%s' operator requires three operands in stack. Found %d.",
+					token.Literal, len(stack)),
+					p.lines)
+				p.errorHandler()
+				return
+			}
+
+			p.consume()
+
+			n := len(stack)
+			a := stack[n-3]
+			b := stack[n-2]
+			c := stack[n-1]
+			stack[n-3], stack[n-2], stack[n-1] = b, c, a
+
 		case tokens.Depth:
 			p.consume()
 			stack = append(stack, tokens.Token{
