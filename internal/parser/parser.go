@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bufio"
 	"fmt"
 	"math"
 	"os"
@@ -15,6 +16,8 @@ type Parser struct {
 	pos          int
 	errorHandler func()
 	lines        []string
+	inLoop       int
+	isREPL       bool
 }
 
 type FlowAddr struct {
@@ -22,7 +25,7 @@ type FlowAddr struct {
 	token tokens.Token
 }
 
-func New(tokens []tokens.Token, errorHandler func(), lines []string) *Parser {
+func New(tokens []tokens.Token, errorHandler func(), lines []string, isREPL bool) *Parser {
 	if errorHandler == nil {
 		errorHandler = func() {}
 	}
@@ -32,6 +35,8 @@ func New(tokens []tokens.Token, errorHandler func(), lines []string) *Parser {
 		pos:          0,
 		errorHandler: errorHandler,
 		lines:        lines,
+		inLoop:       0,
+		isREPL:       isREPL,
 	}
 }
 
@@ -428,6 +433,8 @@ func (p *Parser) Eval() {
 	p.expandBlocks(defs)
 	p.handleControlFlow()
 
+	var outputBuffer = bufio.NewWriter(os.Stdout)
+
 	for {
 		if p.isAtEnd() {
 			break
@@ -484,6 +491,29 @@ func (p *Parser) Eval() {
 			stack = append(stack, res)
 			p.consume()
 
+		case tokens.Concat:
+			if len(stack) < 2 {
+				err.SyntaxError(token, fmt.Sprintf(
+					"The '%s' operator requires two operands in stack. Found %d.",
+					token.Literal, len(stack)),
+					p.lines)
+				p.errorHandler()
+				return
+			}
+
+			a := stack[len(stack)-2]
+			b := stack[len(stack)-1]
+			stack = stack[:len(stack)-2]
+			p.consume()
+
+			result := toString(a) + toString(b)
+
+			stack = append(stack, tokens.Token{
+				Type:    tokens.String,
+				Literal: result,
+				Loc:     token.Loc,
+			})
+
 		case tokens.And, tokens.Or:
 			if len(stack) < 2 {
 				err.SyntaxError(token, fmt.Sprintf(
@@ -530,11 +560,12 @@ func (p *Parser) Eval() {
 
 			p.consume()
 
-		case tokens.Write,
-			tokens.Writeln:
-
+		case tokens.Write, tokens.Writeln:
 			if len(stack) == 0 {
-				err.SyntaxError(token, fmt.Sprintf("The keyword '%s' requires value in stack. Stack is empty.", token.Literal), p.lines)
+				err.SyntaxError(token, fmt.Sprintf(
+					"The keyword '%s' requires value in stack. Stack is empty.",
+					token.Literal),
+					p.lines)
 				p.errorHandler()
 				return
 			}
@@ -543,10 +574,14 @@ func (p *Parser) Eval() {
 			stack = stack[:len(stack)-1]
 			p.consume()
 
-			if token.Type == tokens.Write {
-				fmt.Print(a.Literal)
-			} else {
-				fmt.Println(a.Literal)
+			str := toString(a)
+			outputBuffer.WriteString(str)
+			if token.Type == tokens.Writeln {
+				outputBuffer.WriteByte('\n')
+			}
+
+			if p.inLoop > 0 || p.isREPL {
+				outputBuffer.Flush()
 			}
 
 		case tokens.Type:
@@ -716,6 +751,9 @@ func (p *Parser) Eval() {
 
 		case tokens.If,
 			tokens.For:
+			if token.Type == tokens.For {
+				p.inLoop++
+			}
 			p.consume()
 
 		case tokens.Elif,
@@ -765,6 +803,10 @@ func (p *Parser) Eval() {
 				p.pos = token.JmpTo
 			}
 
+			if p.inLoop > 0 {
+				p.inLoop--
+			}
+
 			p.consume()
 
 		case tokens.Identifier:
@@ -780,4 +822,6 @@ func (p *Parser) Eval() {
 			return
 		}
 	}
+
+	outputBuffer.Flush()
 }

@@ -2,6 +2,8 @@ package parser
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/adaiasmagdiel/beremiz-go/internal/tokens"
 )
@@ -39,5 +41,25 @@ func toBool(t tokens.Token) bool {
 		return t.Literal != ""
 	default:
 		return false
+	}
+}
+
+func toString(t tokens.Token) string {
+	switch v := t.Literal.(type) {
+	case nil:
+		return "nil"
+	case bool:
+		if v {
+			return "true"
+		}
+		return "false"
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case float64:
+		return strconv.FormatFloat(v, 'g', -1, 64)
+	case string:
+		return v
+	default:
+		return fmt.Sprintf("%v", v)
 	}
 }

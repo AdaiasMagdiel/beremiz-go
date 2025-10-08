@@ -24,11 +24,12 @@ const (
 	Type    TokenType = "TYPE"
 	Define  TokenType = "DEFINE"
 
-	Plus  TokenType = "PLUS"
-	Minus TokenType = "MINUS"
-	Times TokenType = "TIMES"
-	Div   TokenType = "DIV"
-	Exp   TokenType = "EXP"
+	Plus   TokenType = "PLUS"
+	Minus  TokenType = "MINUS"
+	Times  TokenType = "TIMES"
+	Div    TokenType = "DIV"
+	Exp    TokenType = "EXP"
+	Concat TokenType = "CONCAT"
 
 	Eq  TokenType = "EQUALS"
 	Neq TokenType = "NOT_EQUALS"
@@ -75,6 +76,7 @@ var Operators map[string]TokenType = map[string]TokenType{
 	"<": Lt,
 	">": Gt,
 	"%": Mod,
+	".": Concat,
 }
 
 func IsOperator(args ...byte) bool {

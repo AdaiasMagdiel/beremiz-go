@@ -45,7 +45,7 @@ func SyntaxError(token tokens.Token, message string, lines []string) {
 
 	fmt.Printf("\x1b[31m%s\x1b[0m%s\n", prefix, line)
 
-	trail := strings.Repeat(" ", token.Loc.Col-1+len(prefix))
+	trail := strings.Repeat(" ", token.Loc.Col-1+len(prefix)-1)
 	fmt.Print(trail)
 
 	lit, ok := token.Literal.(string)
