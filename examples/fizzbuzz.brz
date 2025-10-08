@@ -1,0 +1,32 @@
+1
+
+define multiple_by_3
+    dup 3 % 0 eq
+end
+
+define multiple_by_5
+    dup 5 % 0 eq
+end
+
+for dup 100 <= do
+    dup write ": " write
+
+    if
+        multiple_by_3
+        swap
+        multiple_by_5
+        rot and
+    do
+        "FizzBuzz"
+    elif multiple_by_3 do
+        "Fizz"
+    elif multiple_by_5 do
+        "Buzz"
+    else
+        ""
+    end
+
+    writeln
+
+    1 +
+end
